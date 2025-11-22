@@ -29,6 +29,8 @@ if ($result->num_rows === 1) {
             echo "<script>alert('登入成功！'); window.location='student.php';</script>";
         } else if ($permission == 1) {
             echo "<script>alert('登入成功！'); window.location='store.php';</script>";
+        } else if ($permission == 2) {
+            echo "<script>alert('登入成功！'); window.location='admin.php';</script>";
         } else {
             // 避免未知權限造成問題
             echo "<script>alert('未知權限，請聯絡管理員'); history.back();</script>";

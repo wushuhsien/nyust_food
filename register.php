@@ -1,52 +1,39 @@
 <?php
+session_start();
 include "db.php";  // 已經連接資料庫
 
-// 當按下建立
-if (isset($_POST['action']) && $_POST['action'] == 'create') {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $permission = $_POST['permission'] ?? 0; // 0=學生/教職員, 1=店家
+// 按下下一頁（只傳值，不寫入資料庫）
+if (isset($_POST['action']) && $_POST['action'] == 'next') {
 
-    if ($password !== $confirm_password) {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+    $confirm  = $_POST['confirm_password'];
+    $permission  = $_POST['permission'];
+
+    if ($password !== $confirm) {
         echo "<script>alert('密碼與確認密碼不一致！');</script>";
     } else {
-        // 檢查帳號是否已存在
-        $checkSql = "SELECT * FROM `account` WHERE `account` = ?";
-        $stmtCheck = $link->prepare($checkSql);
-        $stmtCheck->bind_param("s", $username);
-        $stmtCheck->execute();
-        $result = $stmtCheck->get_result();
 
-        if ($result->num_rows > 0) {
-            echo "<script>alert('建立失敗：帳號已存在！');</script>";
+        // 帳號是否已存在
+        $checkSql = "SELECT * FROM account WHERE account = ?";
+        $stmt = $link->prepare($checkSql);
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $rs = $stmt->get_result();
+
+        if ($rs->num_rows > 0) {
+            echo "<script>alert('帳號已存在！');</script>";
         } else {
-            // 建立帳號
-            $sql = "INSERT INTO `account`(`account`, `password`, `created_time`, `permission`, `stop_reason`) 
-                    VALUES (?, ?, CURRENT_TIMESTAMP(), ?, NULL)";
-            $stmt = $link->prepare($sql);
-            $stmt->bind_param("ssi", $username, $password, $permission);
+            // ▸ 只存到 SESSION，不寫 DB
+            $_SESSION['reg_username']   = $username;
+            $_SESSION['reg_password']   = $password;
+            $_SESSION['reg_permission'] = $permission;
 
-            if ($stmt->execute()) {
-                // 成功建立後直接跳轉，不 echo 任何訊息
-                $stmt->close();
-                $stmtCheck->close();
-                echo "<script>alert('帳號建立成功！'); window.location='login.html';</script>";
-                exit();
-            } else {
-                echo "<script>alert('建立失敗：請稍後再試！');</script>";
-            }
-            $stmt->close();
+            header("Location: register-1.php");
+            exit;
         }
-        $stmtCheck->close();
     }
 }
-
-// // 如果按下登入，直接跳轉到 login.php
-// if (isset($_POST['action']) && $_POST['action'] == 'login') {
-//     header("Location: login.php");
-//     exit();
-// }
 ?>
 
 <!DOCTYPE html>
@@ -66,7 +53,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
             <option value="0">學生/教職員</option>
             <option value="1">店家</option>
         </select><br><br>
-        <button type="submit" name="action" value="create">建立</button>
+        <button type="submit" name="action" value="next">下一頁</button>
         <input type="button" value="登入" onclick="window.location.href='login.html'">
     </form>
 </body>
