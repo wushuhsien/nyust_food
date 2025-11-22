@@ -182,7 +182,7 @@ include "db.php";
 			// 顯示帳號
 			$account = $_SESSION['user'] ?? "未登入";
 		?>
-		<h1>學生首頁</h1>
+		<h1>學生/教職員首頁</h1>
 		<div id="top-right-box">
 			<div class="user-account">  <!--帳號-->
 				<?php echo htmlspecialchars($account); ?>
