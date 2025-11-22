@@ -37,24 +37,104 @@ if (isset($_POST['action']) && $_POST['action'] == 'next') {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <title>註冊頁面</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px 50px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 380px;
+        }
+
+        .system-title {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2d6cdf;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 90%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button,
+        input[type="button"] {
+            margin-top: 20px;
+            padding: 10px;
+            width: 95%;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            color: white;
+        }
+
+        button {
+            background-color: #2d6cdf;
+        }
+
+        button:hover {
+            background-color: #1f53b6;
+        }
+
+        input[type="button"] {
+            background-color: #4caf50;
+        }
+
+        input[type="button"]:hover {
+            background-color: #3d8e41;
+        }
+    </style>
 </head>
 <body>
-    <h1>註冊帳號</h1>
-    <form method="POST" action="">
-        帳號：<input type="text" name="username" required><br><br>
-        密碼：<input type="password" name="password" required><br><br>
-        確認密碼：<input type="password" name="confirm_password" required><br><br>
-        身份：
-        <select name="permission">
-            <option value="0">學生/教職員</option>
-            <option value="1">店家</option>
-        </select><br><br>
-        <button type="submit" name="action" value="next">下一頁</button>
-        <input type="button" value="登入" onclick="window.location.href='login.html'">
-    </form>
+
+    <div class="container">
+        <div class="system-title">雲科大周遭點餐系統</div>
+        <h1>註冊帳號</h1>
+
+        <form method="POST" action="">
+            <input type="text" name="username" placeholder="帳號" required><br>
+            <input type="password" name="password" placeholder="密碼" required><br>
+            <input type="password" name="confirm_password" placeholder="確認密碼" required><br>
+
+            <select name="permission">
+                <option value="0">學生 / 教職員</option>
+                <option value="1">店家</option>
+            </select><br>
+
+            <button type="submit" name="action" value="next">下一頁</button>
+            <input type="button" value="登入" onclick="window.location.href='login.html'">
+        </form>
+    </div>
+
 </body>
 </html>
+

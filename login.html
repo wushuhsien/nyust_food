@@ -1,22 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>登入面</title>
+    <title>登入頁面</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px 50px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .system-title {
+            font-size: 40px;
+            font-weight: bold;
+            color: #2d6cdf;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 90%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        input[type="submit"] {
+            margin-top: 20px;
+            padding: 10px 20px;
+            width: 95%;
+            color: white;
+            background-color: #2d6cdf;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #1f53b6;
+        }
+
+        .register-btn {
+            background-color: #4caf50;
+        }
+
+        .register-btn:hover {
+            background-color: #3d8e41;
+        }
+    </style>
 </head>
 <body>
-    <h1>登入</h1>
-    
-    <!-- 登入 -->
-    <form action="login.php" method="POST">
-        帳號：<input type="text" name="username" placeholder="帳號" required><br><br>
-        密碼：<input type="password" name="password" placeholder="密碼" required><br><br>
-        <input type="submit" value="登入">
-    </form>
+    <div class="container">
+        <div class="system-title">雲科大周遭點餐系統</div>
+        
+        <!-- 登入 -->
+        <form action="login.php" method="POST">
+            <input type="text" name="username" placeholder="帳號" required><br>
+            <input type="password" name="password" placeholder="密碼" required><br>
+            <input type="submit" value="登入">
+        </form>
 
-    <!-- 註冊 -->
-    <form action="register.php" method="GET">
-        <input type="submit" value="註冊">
-    </form>
+        <!-- 註冊 -->
+        <form action="register.php" method="GET">
+            <input type="submit" value="註冊" class="register-btn">
+        </form>
+    </div>
 </body>
 </html>

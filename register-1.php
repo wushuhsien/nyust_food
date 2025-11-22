@@ -119,10 +119,96 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>第二步註冊</title>
+    <title>註冊資料</title>
+
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: white;
+            width: 420px;
+            padding: 35px 45px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .system-title {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2d6cdf;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        h3 {
+            color: #2d6cdf;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 90%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px;
+            width: 95%;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            color: white;
+            background-color: #2d6cdf;
+        }
+
+        button:hover {
+            background-color: #1f53b6;
+        }
+
+        .form-box {
+            padding: 20px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+            text-align: left;
+            display: none;
+        }
+
+        .form-box label {
+            font-weight: bold;
+        }
+
+        span.required {
+            color: red;
+        }
+    </style>
+
     <script>
         function showForm() {
             var permission = "<?php echo $permission; ?>";
@@ -131,40 +217,63 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
         }
     </script>
 </head>
+
 <body onload="showForm()">
 
-    <h2>第二步 - 填寫資料</h2>
-    <form method="POST" action="">
+    <div class="container">
+        <div class="system-title">雲科大周遭點餐系統</div>
+        <h2>填寫資料</h2>
 
-        <!-- 店家表單 -->
-        <div id="storeForm" style="display:none; border:1px solid #999; padding:10px; width:300px;">
-            <h3>店家註冊</h3>
-            店家類型：
-            <select name="store_type" >
-                <option value="">請選擇</option>
-                <?php foreach($storeTypes as $type): ?>
-                    <option value="<?php echo $type; ?>"><?php echo $type; ?></option>
-                <?php endforeach; ?>
-            </select><br><br>
-            <span style="color:red">*</span>店家名稱：<input type="text" name="store_name" ><br><br>
-            描述：<input type="text" name="store_desc"><br><br>
-            <span style="color:red">*</span>地址：<input type="text" name="store_address" ><br><br>
-            <span style="color:red">*</span>電話：<input type="text" name="store_phone" ><br><br>
-            <span style="color:red">*</span>電子郵件：<input type="email" name="store_email" ><br><br>
-        </div>
+        <form method="POST" action="">
 
-        <!-- 學生 / 教職員表單 -->
-        <div id="studentForm" style="display:none; border:1px solid #999; padding:10px; width:300px;">
-            <h3>學生 / 教職員 註冊</h3>
-            姓名：<input type="text" name="stu_name"><br><br>
-            暱稱：<input type="text" name="stu_nick"><br><br>
-            電話：<input type="text" name="stu_phone"><br><br>
-            電子郵件：<input type="email" name="stu_email"><br><br>
-        </div>
+            <!-- 店家表單 -->
+            <div id="storeForm" class="form-box">
+                <h3>店家註冊</h3>
 
-        <br>
-        <button type="submit" name="action" value="create">建立</button>
-    </form>
+                <label>店家類型：</label><br>
+                <select name="store_type">
+                    <option value="">請選擇</option>
+                    <?php foreach($storeTypes as $type): ?>
+                        <option value="<?php echo $type; ?>"><?php echo $type; ?></option>
+                    <?php endforeach; ?>
+                </select><br><br>
+
+                <label><span class="required">*</span>店家名稱：</label><br>
+                <input type="text" name="store_name"><br><br>
+
+                <label>描述：</label><br>
+                <input type="text" name="store_desc"><br><br>
+
+                <label><span class="required">*</span>地址：</label><br>
+                <input type="text" name="store_address"><br><br>
+
+                <label><span class="required">*</span>電話：</label><br>
+                <input type="text" name="store_phone"><br><br>
+
+                <label><span class="required">*</span>電子郵件：</label><br>
+                <input type="email" name="store_email"><br><br>
+            </div>
+
+            <!-- 學生 / 教職員表單 -->
+            <div id="studentForm" class="form-box">
+                <h3>學生 / 教職員 註冊</h3>
+
+                <label>姓名：</label><br>
+                <input type="text" name="stu_name"><br><br>
+
+                <label>暱稱：</label><br>
+                <input type="text" name="stu_nick"><br><br>
+
+                <label>電話：</label><br>
+                <input type="text" name="stu_phone"><br><br>
+
+                <label>電子郵件：</label><br>
+                <input type="email" name="stu_email"><br><br>
+            </div>
+
+            <button type="submit" name="action" value="create">建立</button>
+        </form>
+    </div>
 
 </body>
 </html>
