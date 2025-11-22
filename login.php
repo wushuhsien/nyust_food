@@ -3,6 +3,15 @@ header("Content-Type: text/html; charset=utf-8");
 session_start();
 include "db.php";  // 引入資料庫連線
 
+//新增登入紀錄accountaction
+function addLoginAction($link, $username) {
+    $currentTime = date("Y-m-d H:i:s");
+    $insertSql = "INSERT INTO accountaction (time, action, account) VALUES (?, 'IN', ?)";
+    $insertStmt = $link->prepare($insertSql);
+    $insertStmt->bind_param("ss", $currentTime, $username);
+    $insertStmt->execute();
+}
+
 // 取得表單資料
 $username = $_POST['username'];
 $password = $_POST['password'];
@@ -26,10 +35,13 @@ if ($result->num_rows === 1) {
 
         // 根據 permission 導向不同頁面
         if ($permission == 0) {
+            addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='student.php';</script>";
         } else if ($permission == 1) {
+            addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='store.php';</script>";
         } else if ($permission == 2) {
+            addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='admin.php';</script>";
         } else {
             // 避免未知權限造成問題
