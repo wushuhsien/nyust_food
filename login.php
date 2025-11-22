@@ -5,6 +5,7 @@ include "db.php";  // 引入資料庫連線
 
 //新增登入紀錄accountaction
 function addLoginAction($link, $username) {
+    date_default_timezone_set('Asia/Taipei'); // 確保時區正確
     $currentTime = date("Y-m-d H:i:s");
     $insertSql = "INSERT INTO accountaction (time, action, account) VALUES (?, 'IN', ?)";
     $insertStmt = $link->prepare($insertSql);
