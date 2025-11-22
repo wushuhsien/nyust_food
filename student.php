@@ -77,11 +77,26 @@ include "db.php";
 		line-height: 1.5;
 	}
 
+	/*帳號*/
+	#top-right-box {
+		position: absolute;
+		top: 0;
+		right: 10px;
+		height: 50px; /* 和 #a 一樣高 */
+		display: flex;
+		align-items: center; /* 垂直置中 */
+		gap: 10px;          /* 帳號與齒輪的間距 */
+	}
+
+	.user-account {
+		color: white;
+		font-size: 16px;
+		font-weight: bold;
+	}
+
   /* 右上角齒輪按鈕容器 */
     .dropdown {
-        position: absolute;
-        top: 5px;
-        right: 10px;
+        position: relative;
     }
 
     .dropbtn {
@@ -162,22 +177,30 @@ include "db.php";
 </style>
 </head>
 <body>
-
     <div id="a">
+		<?php
+			// 顯示帳號
+			$account = $_SESSION['user'] ?? "未登入";
+		?>
 		<h1>學生首頁</h1>
-		<div class="dropdown">
-			<button class="dropbtn" onclick="toggleDropdown()">
-				<i class="bi bi-gear"></i>
-			</button>
-			<div id="myDropdown" class="dropdown-content">
-				<input type="button" value="個人設定 ▼" onclick="toggleSubMenu()">
-				<div id="subMenu" class="sub-dropdown">
-					<input type="button" value="基本資料" onclick="alert('基本資料')">
-					<input type="button" value="歷史訂單" onclick="alert('歷史訂單')">
-					<input type="button" value="評價紀錄" onclick="alert('評價紀錄')">
+		<div id="top-right-box">
+			<div class="user-account">  <!--帳號-->
+				<?php echo htmlspecialchars($account); ?>
+			</div>
+			<div class="dropdown">
+				<button class="dropbtn" onclick="toggleDropdown()">
+					<i class="bi bi-gear"></i>
+				</button>
+				<div id="myDropdown" class="dropdown-content">
+					<input type="button" value="個人設定 ▼" onclick="toggleSubMenu()">
+					<div id="subMenu" class="sub-dropdown">
+						<input type="button" value="基本資料" onclick="window.location='student_information.php'">
+						<input type="button" value="歷史訂單" onclick="alert('歷史訂單')">
+						<input type="button" value="評價紀錄" onclick="alert('評價紀錄')">
+					</div>
+					<input type="button" value="問題" onclick="alert('問題按鈕')">
+					<input type="button" value="登出" onclick="window.location='login.html'">
 				</div>
-				<input type="button" value="問題" onclick="alert('問題按鈕')">
-				<input type="button" value="登出" onclick="window.location='login.html'">
 			</div>
 		</div>
 	</div>
