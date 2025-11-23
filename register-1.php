@@ -1,7 +1,5 @@
 <?php
 session_start();
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 include "db.php";  // 這裡已經會產生 $storeTypes 陣列
 
 // 取得上一頁帳密與角色
@@ -393,15 +391,34 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
                     // 新增營業時段
                     function addRange(weekday, openValue = '', closeValue = '') {
+                        if (openValue && closeValue && closeValue < openValue) {
+                            let [h, m] = closeValue.split(":").map(Number);
+                            h = (h + 12) % 24; // 自動往後推 12 小時
+                            closeValue = h.toString().padStart(2, "0") + ":" + m.toString().padStart(2,"0");
+                        }
+                        
                         const rangeBox = document.getElementById("ranges-" + weekday);
                         const div = document.createElement("div");
                         div.className = "time-range";
+
+                        // 如果已經有預設值，做自動判斷
+                        if (openValue && closeValue && closeValue < openValue) {
+                            let [h, m] = closeValue.split(":").map(Number);
+
+                            // 判斷是否為 12 小時制跨日錯誤
+                            if (h < 12) {
+                                h += 12; // 自動轉下午
+                            }
+
+                            closeValue = h.toString().padStart(2, "0") + ":" + m.toString().padStart(2, "0");
+                        }
+
                         div.innerHTML = `
-        <input type="time" name="open_time[${weekday}][]" value="${openValue}">
-        <span> - </span>
-        <input type="time" name="close_time[${weekday}][]" value="${closeValue}">
-        <button type="button" class="del-btn" onclick="this.parentElement.remove()">-刪除</button>
-    `;
+                            <input type="time" name="open_time[${weekday}][]" value="${openValue}">
+                            <span> - </span>
+                            <input type="time" name="close_time[${weekday}][]" value="${closeValue}">
+                            <button type="button" class="del-btn" onclick="this.parentElement.remove()">-刪除</button>
+                        `;
                         rangeBox.appendChild(div);
                     }
 
