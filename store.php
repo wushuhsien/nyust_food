@@ -150,10 +150,11 @@ include "db.php";
                 <div id="myDropdown" class="dropdown-content">
                     <input type="button" value="店家設定 ▼" onclick="toggleSubMenu1()">
                     <div id="subMenu1" class="sub-dropdown">
-                        <input type="button" value="店家資料" onclick="window.location='store_information.php'">
+                        <input type="button" value="基本資料" onclick="window.location='store_information.php'">
                     </div>
                     <input type="button" value="店家管理 ▼" onclick="toggleSubMenu2()">
                     <div id="subMenu2" class="sub-dropdown">
+                        <input type="button" value="店家資料" onclick="alert('店家資料')">
                         <input type="button" value="菜單管理" onclick="alert('菜單管理')">
                         <input type="button" value="公告管理" onclick="alert('公告管理')">
                         <input type="button" value="歷史訂單" onclick="alert('歷史訂單')">
