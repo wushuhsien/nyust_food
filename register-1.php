@@ -1,7 +1,5 @@
 <?php
 session_start();
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 include "db.php";  // 這裡已經會產生 $storeTypes 陣列
 
 // 取得上一頁帳密與角色

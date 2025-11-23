@@ -16,7 +16,19 @@ $stmt = $link->prepare($sql);
 $stmt->bind_param("s", $account);
 $stmt->execute();
 $result = $stmt->get_result();
-$row = $result->fetch_assoc();
+$storeData  = $result->fetch_assoc();
+
+// 取得店家營業時間
+$sql = "SELECT `weekday`, `open_time`, `close_time` FROM `storehours` WHERE `account`=? ORDER BY `weekday`, `open_time`";
+$stmt = $link->prepare($sql);
+$stmt->bind_param("s", $account);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$hoursData = [];
+while($row = $result->fetch_assoc()){
+    $hoursData[$row['weekday']][] = $row['open_time']."~".$row['close_time'];
+}
 
 // 取得所有店家類型
 $storeTypes = [];
@@ -47,21 +59,36 @@ if (isset($_POST['update'])) {
         exit;
     }
 
-    $sql = "UPDATE `store` SET 
-                `name`=?, 
-                `description`=?, 
-                `address`=?, 
-                `phone`=?, 
-                `email`=?, 
-                `storetype_id`=? 
-            WHERE `store_id`=?";
+    $sql = "UPDATE `store` SET `name`=?, `description`=?, `address`=?, `phone`=?, `email`=?, `storetype_id`=? WHERE `store_id`=?";
     $stmt = $link->prepare($sql);
     $stmt->bind_param("ssssssi", $name, $description, $address, $phone, $email, $store_type, $store_id);
     $stmt->execute();
 
+    // 刪除原有營業時間
+    $stmt = $link->prepare("DELETE FROM `storehours` WHERE `account`=?");
+    $stmt->bind_param("s", $account);
+    $stmt->execute();
+
+    // 插入新的營業時間
+    if(!empty($_POST['open_time'])){
+        foreach($_POST['open_time'] as $weekday => $opens){
+            $closes = $_POST['close_time'][$weekday];
+            for($i=0; $i<count($opens); $i++){
+                $open = $opens[$i];
+                $close = $closes[$i];
+                if($open && $close){
+                    $stmt = $link->prepare("INSERT INTO `storehours`(`weekday`,`open_time`,`close_time`,`account`) VALUES (?,?,?,?)");
+                    $stmt->bind_param("isss", $weekday, $open, $close, $account);
+                    $stmt->execute();
+                }
+            }
+        }
+    }
+
     echo "<script>alert('基本資料修改成功！'); window.location='store.php';</script>";
     exit;
 }
+$days = ["1"=>"星期一","2"=>"星期二","3"=>"星期三","4"=>"星期四","5"=>"星期五","6"=>"星期六","7"=>"星期日"];
 ?>
 
 <!DOCTYPE html>
@@ -160,21 +187,21 @@ if (isset($_POST['update'])) {
 
 <div class="container">
     <form method="POST">
-        <input type="hidden" name="store_id" value="<?= $row['store_id'] ?>">
+        <input type="hidden" name="store_id" value="<?= $storeData ['store_id'] ?>">
 
         <div class="form-group">
             <label>店名</label>
-            <input type="text" name="name" value="<?= htmlspecialchars($row['name']) ?>">
+            <input type="text" name="name" value="<?= htmlspecialchars($storeData ['name']) ?>">
         </div>
 
         <div class="form-group">
             <label>描述</label>
-            <input type="text" name="description" value="<?= htmlspecialchars($row['description']) ?>">
+            <input type="text" name="description" value="<?= htmlspecialchars($storeData ['description']) ?>">
         </div>
 
         <div class="form-group">
             <label>地址</label>
-            <input type="text" name="address" value="<?= htmlspecialchars($row['address']) ?>">
+            <input type="text" name="address" value="<?= htmlspecialchars($storeData ['address']) ?>">
         </div>
 
         <div class="form-group">
@@ -182,12 +209,12 @@ if (isset($_POST['update'])) {
             <input type="text" name="phone" required
                     pattern="(09\d{8}|0\d{1,3}?\d{5,8})"
                     title="請輸入手機（0912345678）或市話（例如0212345678）"
-                    value="<?= htmlspecialchars($row['phone']) ?>">
+                    value="<?= htmlspecialchars($storeData ['phone']) ?>">
         </div>
 
         <div class="form-group">
             <label>電子郵件</label>
-            <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>">
+            <input type="email" name="email" value="<?= htmlspecialchars($storeData ['email']) ?>">
         </div>
 
         <div class="form-group">
@@ -195,11 +222,22 @@ if (isset($_POST['update'])) {
             <select name="store_type" required>
                 <option value="">請選擇</option>
                 <?php foreach($storeTypes as $type): ?>
-                    <option value="<?= $type['storetype_id'] ?>" <?= $type['storetype_id'] == $row['storetype_id'] ? 'selected' : '' ?>>
+                    <option value="<?= $type['storetype_id'] ?>" <?= $type['storetype_id'] == $storeData ['storetype_id'] ? 'selected' : '' ?>>
                         <?= htmlspecialchars($type['name']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
+        </div>
+
+        <div class="form-group">
+            <label>營業時間</label>
+            <?php foreach($days as $w => $dayName): ?>
+                <div class="hours-block">
+                    <strong><?= $dayName ?>:</strong>
+                    <div id="ranges-<?= $w ?>"></div>
+                    <button type="button" class="add-btn" onclick="addRange(<?= $w ?>)">+新增時段</button>
+                </div>
+            <?php endforeach; ?>
         </div>
 
         <div class="form-group" style="text-align:center;">
@@ -208,5 +246,30 @@ if (isset($_POST['update'])) {
         </div>
     </form>
 </div>
+
+<script>
+const hoursData = <?= json_encode($hoursData) ?>;
+const days = <?= json_encode($days) ?>;
+
+for(const w in hoursData){
+    hoursData[w].forEach(t=>{
+        const [open, close] = t.split("~");
+        addRange(w, open, close);
+    });
+}
+
+function addRange(weekday, openVal='', closeVal=''){
+    const container = document.getElementById('ranges-'+weekday);
+    const div = document.createElement('div');
+    div.className = 'time-range';
+    div.innerHTML = `
+        <input type="time" name="open_time[${weekday}][]" value="${openVal}">
+        <span> - </span>
+        <input type="time" name="close_time[${weekday}][]" value="${closeVal}">
+        <button type="button" class="del-btn" onclick="this.parentElement.remove()">-刪除</button>
+    `;
+    container.appendChild(div);
+}
+</script>
 </body>
 </html>
