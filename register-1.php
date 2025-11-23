@@ -35,23 +35,30 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
         // 取得 student 最大流水號
         $result = $link->query("SELECT MAX(student_id) AS maxid FROM student");
         $row    = $result->fetch_assoc();
-        $nextId = ($row['maxid'] === NULL ? 1 : $row['maxid'] + 1);  
+        $nextId = ($row['maxid'] === NULL ? 1 : $row['maxid'] + 1);
 
-        $stu_name  = $_POST['stu_name'];     
-        $stu_nick  = $_POST['stu_nick'];     
-        $stu_phone = $_POST['stu_phone'];   
-        $stu_email = $_POST['stu_email'];;                  
-        $payment   = NULL;                 
-        $notice    = NULL;                  
-        $acc       = $username;              
+        $stu_name  = $_POST['stu_name'];
+        $stu_nick  = $_POST['stu_nick'];
+        $stu_phone = $_POST['stu_phone'];
+        $stu_email = $_POST['stu_email'];;
+        $payment   = NULL;
+        $notice    = NULL;
+        $acc       = $username;
 
         $sql2 = "INSERT INTO student(student_id, name, nickname, phone, email, payment, notice, account)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt2 = $link->prepare($sql2);
-        $stmt2->bind_param("isssssss",
-            $nextId, $stu_name, $stu_nick, $stu_phone,
-            $stu_email, $payment, $notice, $acc
+        $stmt2->bind_param(
+            "isssssss",
+            $nextId,
+            $stu_name,
+            $stu_nick,
+            $stu_phone,
+            $stu_email,
+            $payment,
+            $notice,
+            $acc
         );
 
         if ($stmt2->execute()) {
@@ -70,14 +77,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
         //取得store最大流水號
         $result = $link->query("SELECT MAX(store_id) AS maxid FROM store");
         $row    = $result->fetch_assoc();
-        $nextId = ($row['maxid'] === NULL ? 1 : $row['maxid'] + 1);  
+        $nextId = ($row['maxid'] === NULL ? 1 : $row['maxid'] + 1);
 
-        $name    = $_POST['store_name'];      
-        $desc    = $_POST['store_desc'];      
-        $address = $_POST['store_address'];   
-        $phone   = $_POST['store_phone'];    
-        $email   = $_POST['store_email'];     
-        $storetypeName = $_POST['store_type']; 
+        $name    = $_POST['store_name'];
+        $desc    = $_POST['store_desc'];
+        $address = $_POST['store_address'];
+        $phone   = $_POST['store_phone'];
+        $email   = $_POST['store_email'];
+        $storetypeName = $_POST['store_type'];
 
         // 用name找storetype_id
         $stmtType = $link->prepare("SELECT storetype_id FROM storetype WHERE name=?");
@@ -95,11 +102,34 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt2 = $link->prepare($sql2);
-        $stmt2->bind_param("isssssis",
-            $nextId, $name, $desc, $address, $phone, $email, $storetype_id, $username
+        $stmt2->bind_param(
+            "isssssis",
+            $nextId,
+            $name,
+            $desc,
+            $address,
+            $phone,
+            $email,
+            $storetype_id,
+            $username
         );
 
         if ($stmt2->execute()) {
+            // 插入 storehours
+            if (!empty($_POST['open_time']) && !empty($_POST['close_time'])) {
+                foreach ($_POST['open_time'] as $weekday => $opens) {
+                    $closes = $_POST['close_time'][$weekday];
+                    for ($i = 0; $i < count($opens); $i++) {
+                        $open  = $opens[$i];
+                        $close = $closes[$i];
+
+                        $stmtHour = $link->prepare("INSERT INTO storehours(weekday, open_time, close_time, account) VALUES (?, ?, ?, ?)");
+                        $stmtHour->bind_param("isss", $weekday, $open, $close, $username);
+                        $stmtHour->execute();
+                    }
+                }
+            }
+
             session_destroy();
             echo "<script>alert('店家註冊成功！'); location.href='login.html';</script>";
             exit;
@@ -108,7 +138,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
             exit;
         }
     }
-    
+
     // 註冊成功
     if ($success) {
         session_destroy();
@@ -120,6 +150,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
     <title>註冊資料</title>
@@ -132,16 +163,17 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
             padding: 0;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             height: 100vh;
         }
 
         .container {
             background: white;
-            width: 420px;
+            width: 720px;
             padding: 35px 45px;
+            /* padding-top: 60px; */
             border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
 
@@ -207,6 +239,76 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
         span.required {
             color: red;
         }
+
+        .two-col {
+            display: flex;
+            gap: 40px;
+        }
+
+        .left-col,
+        .right-col {
+            flex: 1;
+        }
+
+        label {
+            white-space: nowrap;
+        }
+
+        .day-block {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            width: 300px;
+            background: #f9f9f9;
+        }
+
+        .time-range {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 5px;
+        }
+
+        .add-btn {
+            margin-top: 5px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            background-color: #66B3FF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .del-btn {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .del-btn:hover {
+            background-color: #f90000ff;
+        }
+
+        #apply-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 200px;
+        }
+
+        #apply-btn:hover {
+            background-color: #45a049;
+        }
     </style>
 
     <script>
@@ -221,59 +323,192 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 <body onload="showForm()">
 
     <div class="container">
-        <div class="system-title">雲科大周遭點餐系統</div>
         <h2>填寫資料</h2>
 
-        <form method="POST" action="">
+        <!-- 店家表單 -->
+        <form method="POST" action="" id="storeForm" class="form-box" onsubmit="return validateBusinessHours()">
+            <h3>店家註冊</h3>
+            <div class="two-col">
+                <!-- 左欄 -->
+                <div class="left-col">
+                    <label>店家類型：<span class="required">*</span></label><br>
+                    <select name="store_type" required>
+                        <option value="">請選擇</option>
+                        <?php foreach ($storeTypes as $type): ?>
+                            <option value="<?php echo $type; ?>"><?php echo $type; ?></option>
+                        <?php endforeach; ?>
+                    </select><br><br>
 
-            <!-- 店家表單 -->
-            <div id="storeForm" class="form-box">
-                <h3>店家註冊</h3>
+                    <label><span class="required">*</span>店家名稱：</label><br>
+                    <input type="text" name="store_name" required><br><br>
 
-                <label>店家類型：</label><br>
-                <select name="store_type">
-                    <option value="">請選擇</option>
-                    <?php foreach($storeTypes as $type): ?>
-                        <option value="<?php echo $type; ?>"><?php echo $type; ?></option>
-                    <?php endforeach; ?>
-                </select><br><br>
+                    <label>描述：</label><br>
+                    <input type="text" name="store_desc"><br><br>
 
-                <label><span class="required">*</span>店家名稱：</label><br>
-                <input type="text" name="store_name"><br><br>
+                    <label><span class="required">*</span>地址：</label><br>
+                    <input type="text" name="store_address" required><br><br>
 
-                <label>描述：</label><br>
-                <input type="text" name="store_desc"><br><br>
+                    <label><span class="required">*</span>電話：</label><br>
+                    <input type="text" name="store_phone" required><br><br>
 
-                <label><span class="required">*</span>地址：</label><br>
-                <input type="text" name="store_address"><br><br>
+                    <label><span class="required">*</span>電子郵件：</label><br>
+                    <input type="email" name="store_email" required><br><br>
+                </div>
+                <!-- 右欄 -->
+                <div class="right-col">
+                    <label><span class="required">*</span>營業時間：<button type="button" id="apply-btn">套用到其他天</button></label><br>
+                    <div id="business-hours"></div>
+                </div>
+                <script>
+                    // 生成星期選項與時間區塊
+                    const days = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"];
+                    const container = document.getElementById("business-hours");
 
-                <label><span class="required">*</span>電話：</label><br>
-                <input type="text" name="store_phone"><br><br>
+                    days.forEach((day, index) => {
+                        const weekday = index + 1;
+                        const block = document.createElement("div");
+                        block.className = "day-block";
+                        block.innerHTML = `
+        <label>
+            <input type="checkbox" onchange="toggleDay(${weekday})">
+            <strong>${day}</strong>
+        </label>
+        <div id="time-box-${weekday}" style="display:none; margin-top:10px;">
+            <div id="ranges-${weekday}"></div>
+            <button type="button" class="add-btn" onclick="addRange(${weekday})">+新增時段</button>
+        </div>`;
+                        container.appendChild(block);
+                    });
 
-                <label><span class="required">*</span>電子郵件：</label><br>
-                <input type="email" name="store_email"><br><br>
+                    // 顯示/隱藏時間區塊
+                    function toggleDay(weekday) {
+                        const box = document.getElementById("time-box-" + weekday);
+                        const checkbox = box.parentNode.querySelector("input[type='checkbox']");
+                        box.style.display = checkbox.checked ? "block" : "none";
+                    }
+
+                    // 新增營業時段
+                    function addRange(weekday, openValue = '', closeValue = '') {
+                        const rangeBox = document.getElementById("ranges-" + weekday);
+                        const div = document.createElement("div");
+                        div.className = "time-range";
+                        div.innerHTML = `
+        <input type="time" name="open_time[${weekday}][]" value="${openValue}">
+        <span> - </span>
+        <input type="time" name="close_time[${weekday}][]" value="${closeValue}">
+        <button type="button" class="del-btn" onclick="this.parentElement.remove()">-刪除</button>
+    `;
+                        rangeBox.appendChild(div);
+                    }
+
+                    // 套用到其他勾選天
+                    document.getElementById("apply-btn").addEventListener("click", () => {
+                        let sourceWeekday = null;
+                        for (let i = 1; i <= 7; i++) {
+                            const checkbox = document.querySelector(`#time-box-${i}`).parentNode.querySelector('input[type="checkbox"]');
+                            if (checkbox.checked) {
+                                sourceWeekday = i;
+                                break;
+                            }
+                        }
+                        if (!sourceWeekday) {
+                            alert("請先勾選一個星期！");
+                            return;
+                        }
+
+                        const sourceRanges = Array.from(document.querySelectorAll(`#ranges-${sourceWeekday} .time-range`)).map(div => {
+                            const inputs = div.querySelectorAll("input");
+                            return {
+                                open: inputs[0].value,
+                                close: inputs[1].value
+                            };
+                        });
+
+                        for (let i = 1; i <= 7; i++) {
+                            if (i === sourceWeekday) continue;
+                            const checkbox = document.querySelector(`#time-box-${i}`).parentNode.querySelector('input[type="checkbox"]');
+                            if (checkbox.checked) {
+                                const rangeBox = document.getElementById(`ranges-${i}`);
+                                rangeBox.innerHTML = '';
+                                sourceRanges.forEach(r => addRange(i, r.open, r.close));
+                            }
+                        }
+                    });
+                </script>
             </div>
+            <button type="submit" name="action" value="create">建立</button>
+        </form>
 
-            <!-- 學生 / 教職員表單 -->
-            <div id="studentForm" class="form-box">
-                <h3>學生 / 教職員 註冊</h3>
+        <!-- 學生表單 -->
+        <form method="POST" action="" id="studentForm" class="form-box">
+            <h3>學生 / 教職員 註冊</h3>
+            <label>姓名：</label><br>
+            <input type="text" name="stu_name" required><br><br>
 
-                <label>姓名：</label><br>
-                <input type="text" name="stu_name"><br><br>
+            <label>暱稱：</label><br>
+            <input type="text" name="stu_nick" required><br><br>
 
-                <label>暱稱：</label><br>
-                <input type="text" name="stu_nick"><br><br>
+            <label>電話：</label><br>
+            <input type="text" name="stu_phone" required><br><br>
 
-                <label>電話：</label><br>
-                <input type="text" name="stu_phone"><br><br>
-
-                <label>電子郵件：</label><br>
-                <input type="email" name="stu_email"><br><br>
-            </div>
+            <label>電子郵件：</label><br>
+            <input type="email" name="stu_email" required><br><br>
 
             <button type="submit" name="action" value="create">建立</button>
         </form>
     </div>
 
+    <script>
+        function showForm() {
+            const permission = "<?php echo $permission; ?>";
+            if (permission == "1") {
+                document.getElementById("storeForm").style.display = "block";
+                document.getElementById("studentForm").style.display = "none";
+            } else {
+                document.getElementById("storeForm").style.display = "none";
+                document.getElementById("studentForm").style.display = "block";
+            }
+        }
+
+        // 店家營業時間驗證
+        function validateBusinessHours() {
+            let valid = false;
+            let hasChecked = false;
+
+            for (let i = 1; i <= 7; i++) {
+                const checkbox = document.querySelector(`#time-box-${i}`).parentNode.querySelector('input[type="checkbox"]');
+                if (checkbox.checked) {
+                    hasChecked = true;
+                    const ranges = document.querySelectorAll(`#ranges-${i} .time-range`);
+                    if (ranges.length === 0) continue;
+
+                    let allFilled = true;
+                    ranges.forEach(div => {
+                        const inputs = div.querySelectorAll("input[type='time']");
+                        const open = inputs[0].value;
+                        const close = inputs[1].value;
+                        if (!open || !close) allFilled = false;
+                    });
+
+                    if (allFilled) valid = true;
+                }
+            }
+
+            if (!hasChecked) {
+                alert("請至少勾選一個星期！");
+                return false;
+            }
+
+            if (!valid) {
+                alert("請至少填寫完整營業時間！");
+                return false;
+            }
+
+            return true;
+        }
+    </script>
+
 </body>
+
+
 </html>
