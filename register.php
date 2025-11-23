@@ -126,7 +126,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'next') {
             <input type="password" name="confirm_password" placeholder="確認密碼" required><br>
 
             <select name="permission">
-                <option value="0">學生 / 教職員</option>
+                <option value="0">學生/教職員</option>
                 <option value="1">店家</option>
             </select><br>
 

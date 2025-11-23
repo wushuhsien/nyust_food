@@ -349,7 +349,11 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
                     <input type="text" name="store_address" required><br><br>
 
                     <label><span class="required">*</span>電話：</label><br>
-                    <input type="text" name="store_phone" required><br><br>
+                    <input type="text" name="store_phone"
+                        required
+                        pattern="(09\d{8}|0\d{1,3}\d{5,8})"
+                        title="請輸入手機（0912345678）或市話（例如0212345678）">
+                    <br><br>
 
                     <label><span class="required">*</span>電子郵件：</label><br>
                     <input type="email" name="store_email" required><br><br>
@@ -447,9 +451,12 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
             <label>暱稱：</label><br>
             <input type="text" name="stu_nick" required><br><br>
-
-            <label>電話：</label><br>
-            <input type="text" name="stu_phone" required><br><br>
+            <label><span class="required">*</span>電話：</label><br>
+            <input type="text" name="stu_phone"
+                required
+                pattern="(09\d{8}|0\d{1,3}\d{5,8})"
+                title="請輸入手機（0912345678）或市話（例如0212345678）">
+            <br><br>
 
             <label>電子郵件：</label><br>
             <input type="email" name="stu_email" required><br><br>
