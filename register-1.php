@@ -5,9 +5,9 @@ include "db.php";  // 這裡已經會產生 $storeTypes 陣列
 // 取得上一頁帳密與角色
 $username   = $_SESSION['reg_username'] ?? '';
 $password   = $_SESSION['reg_password'] ?? '';
-$permission = $_SESSION['reg_permission'] ?? '';
+$role = $_SESSION['reg_role'] ?? '';
 
-if (!$username || !$password || $permission === '') {
+if (!$username || !$password || $role === '') {
     echo "<script>alert('請先完成第一步註冊！'); location.href='register.php';</script>";
     exit;
 }
@@ -16,10 +16,10 @@ if (!$username || !$password || $permission === '') {
 if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
     //新增account帳密資料表
-    $sql = "INSERT INTO account(account, password, created_time, permission, stop_reason)
-            VALUES (?, ?, CURRENT_TIMESTAMP(), ?, NULL)";
+    $sql = "INSERT INTO account(account, password, created_time, role, permission, stop_reason)
+            VALUES (?, ?, CURRENT_TIMESTAMP(), ?, 0, NULL)";
     $stmt = $link->prepare($sql);
-    $stmt->bind_param("ssi", $username, $password, $permission);
+    $stmt->bind_param("ssi", $username, $password, $role);
 
     if (!$stmt->execute()) {
         echo "<script>alert('建立 account 失敗');</script>";
@@ -27,8 +27,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
     }
 
 
-    //如果是學生/教職員（permission=0），新增student學生/教職員資料表
-    if ($permission == 0) {
+    //如果是學生/教職員（role=0），新增student學生/教職員資料表
+    if ($role == 0) {
 
         // 取得 student 最大流水號
         $result = $link->query("SELECT MAX(student_id) AS maxid FROM student");
@@ -38,12 +38,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
         $stu_name  = $_POST['stu_name'];
         $stu_nick  = $_POST['stu_nick'];
         $stu_phone = $_POST['stu_phone'];
-        $stu_email = $_POST['stu_email'];;
-        $payment   = NULL;
-        $notice    = NULL;
+        $stu_email = $_POST['stu_email'];
         $acc       = $username;
 
-        $sql2 = "INSERT INTO student(student_id, name, nickname, phone, email, payment, notice, account)
+        $sql2 = "INSERT INTO student(student_id, name, nickname, phone, email, account)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt2 = $link->prepare($sql2);
@@ -54,8 +52,6 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
             $stu_nick,
             $stu_phone,
             $stu_email,
-            $payment,
-            $notice,
             $acc
         );
 
@@ -69,8 +65,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
         }
     }
 
-    //如果是店家（permission=1），新增store店家資料表
-    if ($permission == 1) {
+    //如果是店家（role=3），新增store店家資料表
+    if ($role == 3) {
 
         //取得store最大流水號
         $result = $link->query("SELECT MAX(store_id) AS maxid FROM store");
@@ -311,9 +307,9 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
     <script>
         function showForm() {
-            var permission = "<?php echo $permission; ?>";
-            document.getElementById("storeForm").style.display = (permission == "1") ? "block" : "none";
-            document.getElementById("studentForm").style.display = (permission == "0") ? "block" : "none";
+            var role = "<?php echo $role; ?>";
+            document.getElementById("storeForm").style.display = (role == "3") ? "block" : "none";
+            document.getElementById("studentForm").style.display = (role == "0") ? "block" : "none";
         }
     </script>
 </head>
@@ -465,8 +461,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
     <script>
         function showForm() {
-            const permission = "<?php echo $permission; ?>";
-            if (permission == "1") {
+            const role = "<?php echo $role; ?>";
+            if (role == "3") {
                 document.getElementById("storeForm").style.display = "block";
                 document.getElementById("studentForm").style.display = "none";
             } else {

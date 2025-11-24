@@ -20,19 +20,15 @@ if (isset($_POST['update'])) {
         exit;
     }
     $email = $_POST['email'];
-    $payment = $_POST['payment'];
-    $notice = $_POST['notice'];
 
     $sql = "UPDATE `student` SET 
                 `name`=?, 
                 `nickname`=?, 
                 `phone`=?, 
-                `email`=?, 
-                `payment`=?, 
-                `notice`=? 
+                `email`=?
             WHERE `student_id`=?";
     $stmt = $link->prepare($sql);
-    $stmt->bind_param("ssssssi", $name, $nickname, $phone, $email, $payment, $notice, $student_id);
+    $stmt->bind_param("ssssssi", $name, $nickname, $phone, $email, $student_id);
     $stmt->execute();
 
     echo "<script>alert('基本資料修改成功！'); window.location='student.php';</script>";
@@ -40,7 +36,7 @@ if (isset($_POST['update'])) {
 }
 
 // 讀取資料
-$sql = "SELECT `student_id`, `name`, `nickname`, `phone`, `email`, `payment`, `notice`, `account` 
+$sql = "SELECT `student_id`, `name`, `nickname`, `phone`, `email`, `account` 
         FROM `student` WHERE `account`=?";
 $stmt = $link->prepare($sql);
 $stmt->bind_param("s", $account);
@@ -179,9 +175,6 @@ $row = $result->fetch_assoc();
                 <label>電子郵件</label>
                 <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>">
             </div>
-
-            <input type="hidden" name="payment" value="<?= htmlspecialchars($row['payment'] ?: '現金') ?>">
-            <input type="hidden" name="notice" value="<?= htmlspecialchars($row['notice']) ?>">
 
             <div class="btn-area">
                 <input type="submit" name="update" value="修改" class="btn btn-save">

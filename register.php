@@ -8,7 +8,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'next') {
     $username = $_POST['username'];
     $password = $_POST['password'];
     $confirm  = $_POST['confirm_password'];
-    $permission  = $_POST['permission'];
+    $role  = $_POST['role'];
 
     if ($password !== $confirm) {
         echo "<script>alert('密碼與確認密碼不一致！');</script>";
@@ -27,7 +27,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'next') {
             // ▸ 只存到 SESSION，不寫 DB
             $_SESSION['reg_username']   = $username;
             $_SESSION['reg_password']   = $password;
-            $_SESSION['reg_permission'] = $permission;
+            $_SESSION['reg_role'] = $role;
 
             header("Location: register-1.php");
             exit;
@@ -125,9 +125,9 @@ if (isset($_POST['action']) && $_POST['action'] == 'next') {
             <input type="password" name="password" placeholder="密碼" required><br>
             <input type="password" name="confirm_password" placeholder="確認密碼" required><br>
 
-            <select name="permission">
+            <select name="role">
                 <option value="0">學生/教職員</option>
-                <option value="1">店家</option>
+                <option value="3">店家</option>
             </select><br>
 
             <button type="submit" name="action" value="next">下一頁</button>

@@ -32,18 +32,20 @@ if ($result->num_rows === 1) {
     if ($password === $row['password']) {
 
         $_SESSION['user'] = $row['account']; // 記錄登入狀態
-        $permission = $row['permission'];    // 取得權限欄位
+        $role = $row['role'];    // 取得權限欄位
 
-        // 根據 permission 導向不同頁面
-        if ($permission == 0) {
+        // 根據 role 導向不同頁面
+        if ($role == 0) {
             addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='student.php';</script>";
-        } else if ($permission == 1) {
+        } else if ($role == 1) {
             addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='store.php';</script>";
-        } else if ($permission == 2) {
+        } else if ($role == 2) {
             addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='admin.php';</script>";
+        } else if ($role == 3) {
+            echo "<script>alert('店家帳號還在審核中，請稍後再試'); history.back();</script>";
         } else {
             // 避免未知權限造成問題
             echo "<script>alert('未知權限，請聯絡管理員'); history.back();</script>";
