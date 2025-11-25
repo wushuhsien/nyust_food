@@ -43,7 +43,7 @@ if ($result->num_rows === 1) {
             echo "<script>alert('登入成功！'); window.location='store.php';</script>";
         } else if ($role == 2) {
             addLoginAction($link, $username);
-            echo "<script>alert('登入成功！'); window.location='admin.php';</script>";
+            echo "<script>alert('登入成功！'); window.location='admin/admin.php';</script>";
         } else if ($role == 3) {
             echo "<script>alert('店家帳號還在審核中，請稍後再試'); history.back();</script>";
         } else {

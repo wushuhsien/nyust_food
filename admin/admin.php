@@ -1,3 +1,7 @@
+<?php
+session_start();
+include "../db.php";  // 引入資料庫連線
+?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
 
@@ -42,8 +46,6 @@
         <!-- 列出店家待審核帳號、店名 -->
         <div class="announcement-content">
             <?php
-            include "db.php";
-
             $sql = "SELECT a.`account`, b.`name` 
                 FROM `account` AS a 
                 INNER JOIN `store` AS b ON a.`account` = b.`account` 
@@ -75,8 +77,6 @@
         </div>
         <div class="announcement-content">
             <?php
-            include "db.php";
-
             $sql = "SELECT `description`   
                 FROM `report`
                 WHERE `type`='系統問題' AND `status`='待處理'";
