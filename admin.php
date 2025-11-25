@@ -5,133 +5,99 @@
     <meta charset="UTF-8">
     <title>管理員後台</title>
     <style>
-        body {
-            margin: 0;
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background-color: #F2F4F6;
-            /* 科技灰 */
-        }
-
-        /* 頂部選單 */
-        .top-menu {
-            background-color: #004B97;
-            /* 雲科藍 */
-            display: flex;
-            align-items: center;
-            padding: 0 30px;
-            height: 70px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-        }
-
-        .top-menu h1 {
-            color: #ffffff;
-            font-size: 22px;
-            margin: 0;
-            letter-spacing: 1px;
-            font-weight: 600;
-        }
-
-        /* 按鈕置右 */
-        .menu-items {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-        }
-
-        /* 主按鈕 */
-        .menu-item {
-            position: relative;
-            padding: 14px 18px;
-            color: #ffffff;
-            cursor: pointer;
+        /* 新增店家帳號待審核容器 */
+        .announcement-box {
+            width: 90%;
+            margin: 20px auto;
+            padding: 15px 20px;
+            background: #fff8e1;
+            /* 淡黃色背景 */
+            border-left: 6px solid #f7b500;
             border-radius: 8px;
-            margin-left: 15px;
-            transition: all 0.25s ease;
-            font-size: 15px;
-            background: rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(3px);
+            font-family: "Segoe UI", sans-serif;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
         }
 
-        .menu-item:hover {
-            background: #1E90FF;
-            /* 點綴亮藍 */
-            box-shadow: 0 4px 10px rgba(30, 144, 255, 0.4);
+        .announcement-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #b36b00;
         }
 
-        /* 下拉選單 */
-        .dropdown {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            min-width: 220px;
-            background-color: #003A75;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
-
-        .dropdown a {
-            display: block;
-            padding: 12px 20px;
-            color: #ffffff;
-            text-decoration: none;
-            font-size: 14px;
-
-            /* << 新增：分隔線 >> */
-            border-bottom: 1px solid rgba(255, 255, 255, 1);
-
-            transition: background 0.2s;
-        }
-
-        .dropdown a:last-child {
-            border-bottom: none;
-        }
-
-        .dropdown a:hover {
-            background-color: #1E90FF;
-        }
-
-
-        .menu-item:hover .dropdown {
-            display: block;
+        .announcement-content {
+            font-size: 16px;
+            line-height: 1.6;
         }
     </style>
 </head>
 
 <body>
+    <?php include "admin_menu.php"; ?>
+    <!-- 新增店家帳號待審核區塊 -->
+    <div class="announcement-box">
+        <div class="announcement-title">
+            <a href="view_announcement.php" style="text-decoration:none; color:#b36b00;">📢 待審核店家帳號</a>
+        </div>
+        <!-- 列出店家待審核帳號、店名 -->
+        <div class="announcement-content">
+            <?php
+            include "db.php";
 
-    <div class="top-menu">
-        <h1>管理員後台</h1>
+            $sql = "SELECT a.`account`, b.`name` 
+                FROM `account` AS a 
+                INNER JOIN `store` AS b ON a.`account` = b.`account` 
+                WHERE a.`role` = 3";
+            $result = $link->query($sql);
 
-        <div class="menu-items">
+            if ($result && $result->num_rows > 0) {
+                $i = 1; // 流水號起始值
+                while ($row = $result->fetch_assoc()) {
+                    $account = $row['account'];
+                    $storeName = $row['name'];
 
-            <div class="menu-item">使用者資料管理
-                <div class="dropdown">
-                    <a href="#">所有學生/教職員資料</a>
-                    <a href="#">所有店家資料</a>
-                    <a href="#">管理帳號</a>
-                </div>
-            </div>
-
-            <div class="menu-item">店家菜單管理</div>
-            <div class="menu-item">評價管理</div>
-            <div class="menu-item">公告管理</div>
-            <div class="menu-item">問題管理</div>
-
-            <div class="menu-item">統計圖、報表管理
-                <div class="dropdown">
-                    <a href="#">店家歷史訂單</a>
-                    <a href="#">使用者歷史訂單</a>
-                    <a href="#">店家財務分析報表</a>
-                </div>
-            </div>
-
-            <div class="menu-item">日誌管理</div>
-            <div class="menu-item" onclick="window.location='login.html'">登出</div>
+                    echo "<div style='margin-bottom: 6px; font-size:16px; color:#333;'>
+                        $i. 帳號：$account 、 店名：$storeName
+                      </div>";
+                    $i++; // 流水號遞增
+                }
+            } else {
+                echo "<div style='font-size:16px; color:#666;'>目前沒有待審核店家。</div>";
+            }
+            ?>
         </div>
     </div>
 
+    <!-- 系統問題區塊 -->
+    <div class="announcement-box">
+        <div class="announcement-title">
+            <a href="view_issues.php" style="text-decoration:none; color:#b36b00;">⚠️ 待處理系統問題</a>
+        </div>
+        <div class="announcement-content">
+            <?php
+            include "db.php";
+
+            $sql = "SELECT `description`   
+                FROM `report`
+                WHERE `type`='系統問題' AND `status`='待處理'";
+            $result = $link->query($sql);
+
+            if ($result && $result->num_rows > 0) {
+                $i = 1; // 流水號起始值
+                while ($row = $result->fetch_assoc()) {
+                    $description = $row['description'];
+
+                    echo "<div style='margin-bottom: 6px; font-size:16px; color:#333;'>
+                        $i. $description
+                      </div>";
+                    $i++;
+                }
+            } else {
+                echo "<div style='font-size:16px; color:#666;'>目前沒有系統問題。</div>";
+            }
+            ?>
+        </div>
+    </div>
 </body>
 
 </html>
