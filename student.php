@@ -10,7 +10,6 @@ include "db.php";
     <meta charset="UTF-8">
     <title>學生/教職員首頁</title>
 
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     <style>
