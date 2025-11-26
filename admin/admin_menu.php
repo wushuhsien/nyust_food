@@ -12,8 +12,8 @@
         </div>
         <div class="menu-item">公告管理
             <div class="dropdown">
-                <a href="#">店家</a>
-                <a href="#">管理員</a>
+                <a href="store-announcement.php">店家</a>
+                <a href="admin-announcement.php">管理員</a>
             </div>
         </div>
         <div class="menu-item">問題管理
