@@ -10,6 +10,7 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
 <head>
     <meta charset="UTF-8">
     <title>學生/教職員操作日誌</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --main-green: #4caf50;
@@ -100,8 +101,10 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
         <h2><?= htmlspecialchars($log_account) ?>操作日誌</h2>
         <!-- 查詢按鈕，放在 container 外面 -->
         <div class="action-bar">
-            <button type="button" class="search-btn" onclick="window.location='student_material.php'">返回</button>
-
+            <div class="btn-group">
+                <button type="button" class="search-btn" onclick="window.location='student_material.php'">返回</button>
+                <button type="button" class="search-btn" style="margin-left:10px">圖表</button>
+            </div>
             <!-- 每頁筆數選單 -->
             <form method="get" style="margin:0">
                 <input type="hidden" name="account" value="<?= htmlspecialchars($log_account) ?>">
@@ -130,7 +133,7 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
                 <?php
                 if (!empty($log_account)) {
                     $perPage = intval($perPage); // 確保是整數，避免 SQL 注入
-                    $sql = "SELECT `time`, `action` FROM `accountaction` WHERE `account`=? ORDER BY `time` DESC LIMIT $perPage";
+                    $sql = "SELECT `time`, `action` FROM `accountaction` WHERE `account`=? ORDER BY `time` ASC LIMIT $perPage";
                     $stmt = $link->prepare($sql);
                     $stmt->bind_param("s", $log_account);
                     $stmt->execute();
@@ -158,6 +161,128 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
             </tbody>
         </table>
     </div>
-</body>
 
+    <!-- 圖表彈窗 -->
+    <div id="chartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
+
+        <div style="background:white; padding:20px; border-radius:12px; width:720px; position:relative;">
+            <span id="closeChart" style="position:absolute; top:10px; right:15px; cursor:pointer; font-weight:bold;">✖</span>
+
+            <div style="display:flex;">
+
+                <!-- 左側年份選單 -->
+                <div style="width:180px; padding-right:20px; border-right:1px solid #ddd;">
+                    <h3>選擇年份</h3>
+                    <select id="yearSelect" style="width:150px; padding:6px; border-radius:6px;"></select>
+                </div>
+
+                <!-- 右側圖表 -->
+                <div style="flex:1; padding-left:20px;">
+                    <canvas id="logChart" width="500" height="350"></canvas>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let modal = document.getElementById("chartModal");
+        let closeBtn = document.getElementById("closeChart");
+        let yearSelect = document.getElementById("yearSelect");
+
+        // 點擊「圖表」按鈕
+        document.querySelector(".search-btn:nth-child(2)").addEventListener("click", () => {
+            modal.style.display = "flex";
+            loadYearsAndBuildChart();
+        });
+
+        // 關閉彈窗
+        closeBtn.onclick = () => modal.style.display = "none";
+
+        // 從表格資料抓年月與登入/登出
+        function parseTableData() {
+            let logs = [];
+            document.querySelectorAll("tbody tr").forEach(tr => {
+                let tds = tr.querySelectorAll("td");
+                if (tds.length < 3) return;
+
+                let time = tds[1].textContent.trim();
+                let action = tds[2].textContent.trim();
+
+                if (time.includes("無操作紀錄") || time.includes("請選擇帳號")) return;
+
+                let year = time.substring(0, 4);
+                let month = parseInt(time.substring(5, 7)); // 01 → 1
+
+                logs.push({
+                    year,
+                    month,
+                    action
+                });
+            });
+            return logs;
+        }
+
+        // 填入年份下拉 + 建立圖表
+        function loadYearsAndBuildChart() {
+            let logs = parseTableData();
+
+            let years = [...new Set(logs.map(x => x.year))]; // 去重
+            years.sort().reverse();
+
+            yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
+
+            buildChart(yearSelect.value);
+
+            yearSelect.onchange = () => buildChart(yearSelect.value);
+        }
+
+        let chartInstance = null;
+
+        // 生成圖表
+        function buildChart(selectedYear) {
+            let logs = parseTableData();
+
+            let loginCount = new Array(12).fill(0);
+            let logoutCount = new Array(12).fill(0);
+
+            logs.forEach(l => {
+                if (l.year === selectedYear) {
+                    if (l.action === "登入") loginCount[l.month - 1]++;
+                    if (l.action === "登出") logoutCount[l.month - 1]++;
+                }
+            });
+
+            let ctx = document.getElementById("logChart").getContext("2d");
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+                    datasets: [{
+                            label: "登入次數",
+                            data: loginCount,
+                            backgroundColor: "#4caf50"
+                        },
+                        {
+                            label: "登出次數",
+                            data: logoutCount,
+                            backgroundColor: "#f44336"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
 </html>
