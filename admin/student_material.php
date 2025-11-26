@@ -255,6 +255,24 @@ if (isset($_POST['add_student'])) {
         .search-box button:hover {
             opacity: 0.85;
         }
+
+        /* 日誌按鈕 */
+        .btn-log {
+            background: var(--gray);
+            color: white;
+            text-decoration: none;
+            /* 去掉下劃線 */
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+
+        .btn-log:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 
@@ -264,7 +282,7 @@ if (isset($_POST['add_student'])) {
     <div class="container">
         <h2>學生/教職員資料管理</h2>
         <!--查詢-->
-        <form method="POST" class="search-box">            
+        <form method="POST" class="search-box">
             <input type="text" name="query_name" placeholder="查詢姓名">
             <button type="submit" name="search_btn">查詢</button>
         </form>
@@ -361,7 +379,7 @@ if (isset($_POST['add_student'])) {
                                         <button class="btn-order">歷史訂單</button>
                                         <button class="btn-rate">評價</button>
                                         <button class="btn-chart">圖表</button>
-                                        <button class="btn-log">日誌</button>
+                                        <a href="student_accountaction.php?account=<?= $row['account'] ?>" class="btn-log">日誌</a>
                                     </div>
                                 </div>
                             </td>
@@ -372,14 +390,12 @@ if (isset($_POST['add_student'])) {
                         $i++;
                     }
                 } else {
-                    echo "<tr><td colspan='11' style='text-align:center;color:#888'>無學生/教職員資料</td></tr>";
+                    echo "<tr><td colspan='10' style='text-align:center;color:#888'>無學生/教職員資料</td></tr>";
                 }
                 ?>
 
             </tbody>
         </table>
     </div>
-
 </body>
-
 </html>
