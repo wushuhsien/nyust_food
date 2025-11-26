@@ -167,7 +167,7 @@ include "../db.php";  // 引入資料庫連線
     <?php include "admin_menu.php"; ?>
 
     <div id="b">
-        <h1>公告</h1>
+        <h1>管理員公告</h1>
 
         <!-- 工具列在同一行 -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -207,6 +207,17 @@ include "../db.php";  // 引入資料庫連線
         </div>
 
         <?php
+        // 日期篩選檢查
+        $start_date = $_GET['start_date'] ?? '';
+        $end_date = $_GET['end_date'] ?? '';
+
+        if (!empty($start_date) && !empty($end_date)) {
+            if ($start_date > $end_date) {
+                echo "<script>alert('開始日期不能大於結束日期'); history.back();</script>";
+                exit();
+            }
+        }
+
         // 取得今天日期與時間
         $now = date("Y-m-d H:i:s");
 

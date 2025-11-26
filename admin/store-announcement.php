@@ -171,7 +171,7 @@ include "../db.php";  // 引入資料庫連線
     <?php include "admin_menu.php"; ?>
 
     <div id="b">
-        <h1>未改公告</h1>
+        <h1>店家公告</h1>
 
         <?php
         $sql = "SELECT announcement_id, topic, description, start_time, end_time

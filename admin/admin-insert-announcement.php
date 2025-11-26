@@ -10,6 +10,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $start_time = $_POST['start_time'];
     $end_time = $_POST['end_time'];
 
+    if ($start_time > $end_time) {
+        echo "<script>alert('開始時間不能大於結束時間'); history.back();</script>";
+        exit();
+    }
+
     $type = "公告";
 
     // 從 session 拿管理員帳號
