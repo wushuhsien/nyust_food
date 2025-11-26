@@ -223,6 +223,38 @@ if (isset($_POST['add_student'])) {
             letter-spacing: 2px;
             color: #999;
         }
+
+        .title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .search-box input {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        .search-box button {
+            padding: 8px 14px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .search-box button:hover {
+            opacity: 0.85;
+        }
     </style>
 </head>
 
@@ -231,6 +263,11 @@ if (isset($_POST['add_student'])) {
 
     <div class="container">
         <h2>學生/教職員資料管理</h2>
+        <!--查詢-->
+        <form method="POST" class="search-box">            
+            <input type="text" name="query_name" placeholder="查詢姓名">
+            <button type="submit" name="search_btn">查詢</button>
+        </form>
 
         <!-- 新增學生 -->
         <form method="POST" class="add-box">
@@ -263,9 +300,23 @@ if (isset($_POST['add_student'])) {
             <tbody>
 
                 <?php
-                $sql = "SELECT a.`account`, a.`password`, b.`name`, b.`nickname`, b.`phone`, b.`email`, a.`created_time`, a.`permission`, a.`stop_reason`
-FROM `account` As a INNER JOIN `student` AS b ON a.`account` = b.`account`
-WHERE a.role=0";
+                // 判斷是否按下查詢按鈕
+                if (isset($_POST['search_btn']) && !empty($_POST['query_name'])) {
+                    $query_name = $link->real_escape_string($_POST['query_name']);
+
+                    $sql = "SELECT a.`account`, a.`password`, b.`name`, b.`nickname`, b.`phone`, b.`email`,
+                            a.`created_time`, a.`permission`, a.`stop_reason`
+                            FROM `account` As a
+                            INNER JOIN `student` AS b ON a.`account` = b.`account`
+                            WHERE a.role=0 AND b.`name` = '$query_name'";
+                } else {
+                    // 沒按查詢 → 顯示全部
+                    $sql = "SELECT a.`account`, a.`password`, b.`name`, b.`nickname`, b.`phone`, b.`email`,
+                            a.`created_time`, a.`permission`, a.`stop_reason`
+                            FROM `account` As a
+                            INNER JOIN `student` AS b ON a.`account` = b.`account`
+                            WHERE a.role=0";
+                }
 
                 $result = $link->query($sql);
                 $i = 1;
@@ -321,7 +372,7 @@ WHERE a.role=0";
                         $i++;
                     }
                 } else {
-                    echo "<tr><td colspan='11' style='text-align:center;color:#888'>尚無學生資料</td></tr>";
+                    echo "<tr><td colspan='11' style='text-align:center;color:#888'>無學生/教職員資料</td></tr>";
                 }
                 ?>
 
