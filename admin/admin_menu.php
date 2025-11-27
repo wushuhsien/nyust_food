@@ -95,9 +95,9 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
                         <i class="bi bi-gear"></i>
                     </button>
                     <div id="userDropdown" class="dropdown-content">
-                        <input type="button" value="店家設定 ▼" onclick="toggleSubMenu1()">
+                        <input type="button" value="管理員設定 ▼" onclick="toggleSubMenu1()">
                         <div id="subMenu1" class="sub-dropdown">
-                            <input type="button" value="店家資料" onclick="window.location='admin_information.php'">
+                            <input type="button" value="管理員資料" onclick="window.location='admin_information.php'">
                         </div>
                         <input type="button" value="登出" onclick="window.location='../login.html'">
                     </div>

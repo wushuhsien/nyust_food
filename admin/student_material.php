@@ -326,7 +326,7 @@ if (isset($_POST['add_student'])) {
                             a.`created_time`, a.`permission`, a.`stop_reason`
                             FROM `account` As a
                             INNER JOIN `student` AS b ON a.`account` = b.`account`
-                            WHERE a.role=0 AND b.`name` = '$query_name'";
+                            WHERE a.role=0 AND b.`name` LIKE '%$query_name%'";
                 } else {
                     // 沒按查詢 → 顯示全部
                     $sql = "SELECT a.`account`, a.`password`, b.`name`, b.`nickname`, b.`phone`, b.`email`,

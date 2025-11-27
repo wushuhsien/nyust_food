@@ -50,6 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             color: #1E3A8A;
         }
 
+        input {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
         .announcement {
             background-color: #F8FAFF;
             border: 1px solid #C7D2FE;
@@ -116,83 +122,115 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     <?php include "admin_menu.php"; ?>
 
     <div id="b">
-        <h1>管理員公告</h1>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <!-- 日期篩選 -->
-            <form method="GET" style="display:flex; gap:10px; align-items:center; margin:0;">
-                <label>開始日期：</label>
-                <input type="date" id="start_date" name="start_date" value="<?php echo $_GET['start_date'] ?? ''; ?>">
-
-                <label>結束日期：</label>
-                <input type="date" id="end_date" name="end_date" value="<?php echo $_GET['end_date'] ?? ''; ?>">
-
-                <button type="submit" style="
-                padding:6px 12px;
-                background:#2563EB;
-                color:white;
-                border:none;
-                border-radius:6px;
-                cursor:pointer;
-            ">查詢</button>
-            </form>
-
-            <!-- 新增公告按鈕 -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h1>管理員公告</h1>
             <button onclick="location.href='admin-insert-announcement.php'"
-                style="
-                padding: 8px 14px;
-                background: #1E3A8A;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                cursor: pointer;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            ">
+                style="padding: 8px 14px; background: #1E3A8A; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">
                 新增公告
             </button>
         </div>
 
-        <?php
-        // 日期篩選檢查
-        $start_date = $_GET['start_date'] ?? '';
-        $end_date = $_GET['end_date'] ?? '';
 
+        <!-- 查詢表單 & 新增公告按鈕 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <form method="POST" style="display:flex; gap:10px; align-items:center; margin:0;">
+                <label>開始日期：</label>
+                <input type="date" id="start_date" name="start_date" value="<?php echo $_POST['start_date'] ?? ''; ?>">
+                <label>結束日期：</label>
+                <input type="date" id="end_date" name="end_date" value="<?php echo $_POST['end_date'] ?? ''; ?>">
+                <input type="text" id="query_name" name="query_name" placeholder="查詢主題">
+                <button type="submit" id="query_btn" style="padding:6px 12px; background:#2563EB; color:white; border:none; border-radius:6px; cursor:pointer;">查詢</button>
+            </form>
+        </div>
+
+        <?php
+        // 處理日期篩選
+        $start_date = $_POST['start_date'] ?? '';
+        $end_date   = $_POST['end_date'] ?? '';
+        $query      = $_POST['query_name'] ?? '';
+
+        $sql = "SELECT * FROM announcement WHERE type='公告'";
+        $conditions = [];
+        $params = [];
+        $types = "";
+
+        // 轉查詢日期為時間範圍邊界
+        if (!empty($start_date)) {
+            $startStart = "$start_date 00:00:00";
+            $startEnd   = "$start_date 23:59:59";
+        }
+
+        if (!empty($end_date)) {
+            $endStart = "$end_date 00:00:00";
+            $endEnd   = "$end_date 23:59:59";
+        }
+
+        // ✅ 主題模糊查詢
+        if (!empty($query)) {
+            $conditions[] = "topic LIKE ?";
+            $params[] = "%" . $query . "%";
+            $types .= "s";
+        }
+
+        // ✅ 只有開始日期（只要該日落在公告區間內就命中）
+        if (!empty($start_date) && empty($end_date)) {
+            $conditions[] = "start_time <= ? AND end_time >= ?";
+            $params[] = $startEnd;
+            $params[] = $startStart;
+            $types .= "ss";
+        }
+
+        // ✅ 只有結束日期
+        if (empty($start_date) && !empty($end_date)) {
+            $conditions[] = "start_time <= ? AND end_time >= ?";
+            $params[] = $endEnd;
+            $params[] = $endStart;
+            $types .= "ss";
+        }
+
+        // ✅ 開始 + 結束都有（交集篩選）
         if (!empty($start_date) && !empty($end_date)) {
             if ($start_date > $end_date) {
                 echo "<script>alert('開始日期不能大於結束日期'); history.back();</script>";
-                exit();
+                exit;
             }
+            $conditions[] = "start_time <= ? AND end_time >= ?";
+            $params[] = $endEnd;
+            $params[] = $startStart;
+            $types .= "ss";
         }
 
-        // SQL：依日期篩選公告
-        $sql = "SELECT * FROM announcement WHERE type='公告'";
-
-        if (!empty($start_date) && !empty($end_date)) {
-            // 篩選範圍內的公告
-            $sql .= " AND start_time <= '$end_date 23:59:59' AND end_time >= '$start_date 00:00:00'";
+        // ✅ 把條件真正加回 SQL
+        if (count($conditions) > 0) {
+            $sql .= " AND " . implode(" AND ", $conditions);
         } else {
-            // 沒選日期 → 預設顯示今天有效公告
+            // 🔹 若完全沒選日期也沒主題，顯示目前有效公告
             $now = date("Y-m-d H:i:s");
             $sql .= " AND start_time <= '$now' AND end_time >= '$now'";
         }
 
         $sql .= " ORDER BY start_time ASC";
 
-        $result = $link->query($sql);
+        // ✅ Prepared statement
+        $stmt = $link->prepare($sql);
+        if (count($params) > 0) {
+            $stmt->bind_param($types, ...$params);
+        }
 
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        // 顯示公告 UI
         if ($result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
                 echo '<div class="announcement">';
                 echo '<div class="btn-area">';
-                echo '<button class="edit-btn" onclick="location.href=\'admin-update-announcement.php?id=' . $row['announcement_id'] . '\'">修改</button>';
+                echo '<button class="edit-btn" onclick="location.href=\'store-update-announcement.php?id=' . $row['announcement_id'] . '\'">修改</button>';
                 echo '<button class="delete-btn" onclick="deleteAnnouncement(' . $row['announcement_id'] . ')">刪除</button>';
                 echo '</div>';
-
                 echo '<p><strong>主題：</strong>' . htmlspecialchars($row['topic']) . '</p>';
                 echo '<p><strong>內容：</strong>' . nl2br(htmlspecialchars($row['description'])) . '</p>';
-                echo '<p><strong>時間：</strong>' . htmlspecialchars($row['start_time']) .
-                    ' ~ ' . htmlspecialchars($row['end_time']) . '</p>';
+                echo '<p><strong>時間：</strong>' . htmlspecialchars($row['start_time']) . ' ~ ' . htmlspecialchars($row['end_time']) . '</p>';
                 echo '</div>';
             }
         } else {
@@ -225,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             };
             xhr.send("delete_id=" + id);
         }
-        
+
         document.getElementById("start_date").addEventListener("change", function() {
             let start = this.value;
             let endInput = document.getElementById("end_date");

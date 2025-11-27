@@ -248,8 +248,7 @@ if (isset($_POST['add_store'])) {
             width: 80px;
         }
 
-        .hours-block .add-btn,
-        .hours-block .del-btn {
+        .hours-block .add-btn {
             font-size: 12px;
             padding: 3px 6px;
             cursor: pointer;
@@ -260,7 +259,24 @@ if (isset($_POST['add_store'])) {
         }
 
         .hours-block .del-btn {
+            font-size: 12px;
+            padding: 3px 6px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
             background: #ff6b6b;
+            color: white;
+        }
+
+        /* +新增時段 hover 保持 66B3FF */
+        .hours-block .add-btn:hover {
+            background: #66B3FF;
+            /* 不變 */
+        }
+
+        /* -刪除 hover 改用 f90000ff */
+        .hours-block .del-btn:hover {
+            background: #f90000ff;
         }
 
         .hours-block .time-range {
@@ -533,7 +549,7 @@ if (isset($_POST['add_store'])) {
                                 INNER JOIN store AS b ON a.account = b.account
                                 INNER JOIN storetype AS c ON b.storetype_id = c.storetype_id
                                 LEFT JOIN storehours AS d ON a.account = d.account
-                                WHERE (a.role=1 OR a.role=3) AND b.name = '$query_name'
+                                WHERE (a.role=1 OR a.role=3) AND b.name LIKE '%$query_name%'
                                 ORDER BY a.account, d.weekday";
                 } else {
                     $sql = "SELECT a.account, b.name AS store_name, b.description, b.address, b.phone, b.email,

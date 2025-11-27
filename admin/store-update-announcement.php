@@ -66,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <head>
     <meta charset="UTF-8">
-    <title>管理員公告修改</title>
+    <title>店家公告修改</title>
 
     <style>
         body {
@@ -207,7 +207,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
             <div class="btn-area">
                 <button class="btn-save" type="submit">修改</button>
-                <button class="btn-cancel" type="button" onclick="location.href='admin-announcement.php'">取消</button>
+                <button class="btn-cancel" type="button" onclick="location.href='store-announcement.php'">取消</button>
             </div>
 
         </form>
