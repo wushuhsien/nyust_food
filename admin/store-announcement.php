@@ -139,7 +139,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         $end_date   = $_POST['end_date'] ?? '';
         $query      = $_POST['query_name'] ?? '';
 
-        $sql = "SELECT * FROM announcement WHERE type='店休'";
+        $sql = "SELECT a.announcement_id, a.topic, a.description, a.start_time, a.end_time, s.name AS store_name
+        FROM announcement a
+        LEFT JOIN store s ON a.account = s.account
+        WHERE a.type = '店休'";
+
         $conditions = [];
         $params = [];
         $types = "";
@@ -218,6 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                 echo '<button class="edit-btn" onclick="location.href=\'store-update-announcement.php?id=' . $row['announcement_id'] . '\'">修改</button>';
                 echo '<button class="delete-btn" onclick="deleteAnnouncement(' . $row['announcement_id'] . ')">刪除</button>';
                 echo '</div>';
+                echo '<p><strong>店家名稱：</strong>' . htmlspecialchars($row['store_name']) . '</p>';
                 echo '<p><strong>主題：</strong>' . htmlspecialchars($row['topic']) . '</p>';
                 echo '<p><strong>內容：</strong>' . nl2br(htmlspecialchars($row['description'])) . '</p>';
                 echo '<p><strong>時間：</strong>' . htmlspecialchars($row['start_time']) . ' ~ ' . htmlspecialchars($row['end_time']) . '</p>';

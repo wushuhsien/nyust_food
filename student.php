@@ -113,19 +113,20 @@ include "db.php";
         <div style="flex:1; border:2px solid #4a90e2; border-radius:10px; padding:15px; background-color:#e8f3ff; max-height:500px; overflow-y:auto;">
             <h2 style="text-align:center; color:#005AB5;">店家公告</h2>
             <?php
-            $sql_store = "SELECT announcement_id, topic, description, start_time, end_time
-                      FROM announcement
-                      WHERE type='店休'
-                        AND start_time <= NOW()
-                        AND end_time >= NOW()
-                      ORDER BY start_time DESC";
-
+            $sql_store = "SELECT a.announcement_id, a.topic, a.description, a.start_time, a.end_time, s.name AS store_name
+              FROM announcement a
+              JOIN store s ON a.account = s.account
+              WHERE a.type = '店休'
+                AND a.start_time <= NOW()
+                AND a.end_time >= NOW()
+              ORDER BY a.start_time DESC";
 
             $result_store = $link->query($sql_store);
 
             if ($result_store->num_rows > 0) {
                 while ($row = $result_store->fetch_assoc()) {
                     echo '<div class="announcement">';
+                    echo '<p><strong>店家名稱：</strong>' . htmlspecialchars($row['store_name']) . '</p>';
                     echo '<p><strong>主題：</strong>' . htmlspecialchars($row['topic']) . '</p>';
                     echo '<p><strong>內容：</strong>' . nl2br(htmlspecialchars($row['description'])) . '</p>';
                     echo '<p><strong>時間：</strong>' . htmlspecialchars($row['start_time']) . ' ~ ' . htmlspecialchars($row['end_time']) . '</p>';
