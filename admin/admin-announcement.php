@@ -1,6 +1,23 @@
 <?php
 session_start();
 include "../db.php";  // 引入資料庫連線
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    $id = intval($_POST['delete_id']);
+    if ($id > 0) {
+        $stmt = $link->prepare("DELETE FROM announcement WHERE announcement_id = ?");
+        $stmt->bind_param("i", $id);
+        if ($stmt->execute()) {
+            echo "success"; // AJAX 接收到 success 後再 alert
+        } else {
+            echo "刪除失敗";
+        }
+        $stmt->close();
+    } else {
+        echo "無效ID";
+    }
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -14,10 +31,8 @@ include "../db.php";  // 引入資料庫連線
             font-family: 'Inter', 'Segoe UI', sans-serif;
             margin: 20px;
             background-color: #E8EEFF;
-            /* 淡藍背景 */
         }
 
-        /* 包公告卡片的容器 */
         #b {
             background-color: #FFFFFF;
             margin: 20px auto;
@@ -35,7 +50,6 @@ include "../db.php";  // 引入資料庫連線
             color: #1E3A8A;
         }
 
-        /* 公告卡片 */
         .announcement {
             background-color: #F8FAFF;
             border: 1px solid #C7D2FE;
@@ -51,7 +65,6 @@ include "../db.php";  // 引入資料庫連線
             color: #1E293B;
         }
 
-        /* 卡片右上角按鈕區 */
         .announcement .btn-area {
             position: absolute;
             right: 12px;
@@ -72,7 +85,6 @@ include "../db.php";  // 引入資料庫連線
 
         .edit-btn {
             background-color: #2563EB;
-            /* 雲科藍 */
         }
 
         .edit-btn:hover {
@@ -81,14 +93,12 @@ include "../db.php";  // 引入資料庫連線
 
         .delete-btn {
             background-color: #DC2626;
-            /* 紅色 */
         }
 
         .delete-btn:hover {
             background-color: #B91C1C;
         }
 
-        /* 帳號右上角 */
         #top-right-box {
             position: absolute;
             top: 0;
@@ -97,67 +107,6 @@ include "../db.php";  // 引入資料庫連線
             display: flex;
             align-items: center;
             gap: 12px;
-        }
-
-        .user-account {
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .dropdown {
-            position: relative;
-        }
-
-        .dropbtn {
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-
-        .dropbtn i {
-            font-size: 26px;
-            color: white;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background-color: white;
-            min-width: 160px;
-            border-radius: 6px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-            z-index: 100;
-            border: 1px solid #C7D2FE;
-        }
-
-        .dropdown-content input[type="button"] {
-            width: 100%;
-            padding: 10px 12px;
-            border: none;
-            background-color: white;
-            text-align: left;
-            cursor: pointer;
-            border-bottom: 1px solid #E2E8F0;
-        }
-
-        .dropdown-content input[type="button"]:hover {
-            background-color: #EFF6FF;
-            color: #1E3A8A;
-        }
-
-        .dropdown-content input:last-child {
-            border-bottom: none;
-        }
-
-        .sub-dropdown {
-            display: none;
-            background-color: #F1F5FF;
-        }
-
-        .sub-dropdown input {
-            padding-left: 22px;
         }
     </style>
 
@@ -169,9 +118,7 @@ include "../db.php";  // 引入資料庫連線
     <div id="b">
         <h1>管理員公告</h1>
 
-        <!-- 工具列在同一行 -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-
             <!-- 日期篩選 -->
             <form method="GET" style="display:flex; gap:10px; align-items:center; margin:0;">
                 <label>開始日期：</label>
@@ -218,15 +165,19 @@ include "../db.php";  // 引入資料庫連線
             }
         }
 
-        // 取得今天日期與時間
-        $now = date("Y-m-d H:i:s");
+        // SQL：依日期篩選公告
+        $sql = "SELECT * FROM announcement WHERE type='公告'";
 
-        // SQL：只查今天有效的公告
-        $sql = "SELECT * FROM announcement
-        WHERE type='公告'
-        AND start_time <= '$now'
-        AND end_time >= '$now'
-        ORDER BY start_time DESC";
+        if (!empty($start_date) && !empty($end_date)) {
+            // 篩選範圍內的公告
+            $sql .= " AND start_time <= '$end_date 23:59:59' AND end_time >= '$start_date 00:00:00'";
+        } else {
+            // 沒選日期 → 預設顯示今天有效公告
+            $now = date("Y-m-d H:i:s");
+            $sql .= " AND start_time <= '$now' AND end_time >= '$now'";
+        }
+
+        $sql .= " ORDER BY start_time ASC";
 
         $result = $link->query($sql);
 
@@ -252,22 +203,29 @@ include "../db.php";  // 引入資料庫連線
     </div>
 
     <script>
-        function toggleDropdown() {
-            let menu = document.getElementById("myDropdown");
-            menu.style.display = (menu.style.display === "block") ? "none" : "block";
-        }
-
         function deleteAnnouncement(id) {
-            if (confirm("確定要刪除這則公告嗎？")) {
-                window.location = "admin_delete_announcement.php?id=" + id;
-            }
-        }
+            if (!confirm("確定要刪除這則公告嗎？")) return;
 
-        window.onclick = function(event) {
-            if (!event.target.closest('.dropdown')) {
-                document.getElementById("myDropdown").style.display = "none";
-            }
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", "", true); // 同一個檔案處理
+            xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    let res = xhr.responseText.trim();
+                    if (res === "success") {
+                        alert("刪除管理員公告成功！");
+                        // 重新整理頁面，保持更新
+                        location.reload();
+                    } else {
+                        alert("刪除失敗: " + res);
+                    }
+                } else {
+                    alert("伺服器錯誤，請稍後再試。");
+                }
+            };
+            xhr.send("delete_id=" + id);
         }
+        
         document.getElementById("start_date").addEventListener("change", function() {
             let start = this.value;
             let endInput = document.getElementById("end_date");
