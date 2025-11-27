@@ -10,13 +10,20 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
     <link rel="stylesheet" href="../css/admin_menu.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #F3ECE6;
+            /* 原本偏冷的藍改成溫暖淡米背景 */
+        }
+
         .user-settings {
             display: flex;
             align-items: center;
             gap: 5px;
             margin-left: auto;
-            /* 推到最右 */
             position: relative;
+            /* ✅ 讓下拉定位以這個按鈕為基準 */
         }
 
         .dropbtn {
@@ -31,30 +38,45 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
             display: none;
             position: absolute;
             top: 100%;
-            right: 0;
-            background-color: white;
-            border: 1px solid #ccc;
+            /* ✅ 讓它出現在按鈕正下方 */
+            left: 0;
+            /* ✅ 左邊與按鈕對齊 */
+            background-color: #f9faff;
             min-width: 150px;
-            z-index: 10;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+            border-radius: 6px;
+            z-index: 1;
+            border: 1px solid #D7C1B2;
         }
 
-        .dropdown-content input {
+        .dropdown-content input[type="button"] {
             width: 100%;
-            padding: 8px 12px;
+            padding: 10px 12px;
             border: none;
-            background: none;
+            background-color: #f9faff;
             text-align: left;
             cursor: pointer;
+            border-bottom: 1px solid #D7C1B2;
+            font-size: 14px;
         }
 
-        .dropdown-content input:hover {
-            background-color: #f0f0f0;
+        .dropdown-content input[type="button"]:hover {
+            background-color: #C19A6B;
+            color: white;
+        }
+
+        .dropdown-content input[type="button"]:last-child {
+            border-bottom: none;
         }
 
         .sub-dropdown {
             display: none;
-            padding-left: 10px;
+            background-color: #f9faff;
+            border-left: 3px solid #8B5E3C;
+        }
+
+        .sub-dropdown input[type="button"] {
+            padding-left: 20px;
         }
 
         .account {

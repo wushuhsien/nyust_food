@@ -24,51 +24,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>管理員公告</title>
+    <title>系統公告</title>
 
     <style>
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            margin: 20px;
-            background-color: #E8EEFF;
-        }
-
         #b {
-            background-color: #FFFFFF;
+            background-color: #ffffff;
             margin: 20px auto;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             max-width: 750px;
             text-align: left;
-            border: 1px solid #CBD5E1;
+            border: 1px solid #D7C1B2;
+            /* 改成柔和暖棕邊框 */
         }
 
         #b h1 {
             font-size: 22px;
             margin-top: 0;
-            color: #1E3A8A;
+            color: #5A3E2B;
+            /* 更沉穩的棕黑標題 */
         }
 
         input {
             padding: 8px 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #C19A6B;
+            /* 配合主色 */
             border-radius: 8px;
+            background-color: #FAF6F3;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(139, 94, 60, 0.25);
+            border-color: #8B5E3C;
         }
 
         .announcement {
-            background-color: #F8FAFF;
-            border: 1px solid #C7D2FE;
+            background-color: #FFF8E1;
+            /* 你要保留的淡黃色 */
+            border-left: 5px solid #8B5E3C;
+            /* 改成你選的焦糖棕 */
             border-radius: 8px;
             padding: 15px 18px;
             margin-bottom: 15px;
             position: relative;
+            box-shadow: 0 2px 8px rgba(139, 94, 60, 0.18);
         }
 
         .announcement p {
             margin: 6px 0;
             line-height: 1.5;
-            color: #1E293B;
+            color: #3B2F2F;
+            /* 深灰棕文字更耐看 */
         }
 
         .announcement .btn-area {
@@ -79,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             gap: 8px;
         }
 
+        /* 編輯 / 刪除按鈕 */
         .edit-btn,
         .delete-btn {
             padding: 4px 8px;
@@ -89,30 +98,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             cursor: pointer;
         }
 
+        /* edit 用柔和但有對比的「咖啡黑」 */
         .edit-btn {
-            background-color: #2563EB;
+            background-color: #6F4E37;
         }
 
         .edit-btn:hover {
-            background-color: #1D4ED8;
+            background-color: #5A3B2A;
+            transform: translateY(-1px);
         }
 
+        /* delete 用不刺眼但專業的「灰酒紅」 */
         .delete-btn {
-            background-color: #DC2626;
+            background-color: #A63D40;
         }
 
         .delete-btn:hover {
-            background-color: #B91C1C;
-        }
-
-        #top-right-box {
-            position: absolute;
-            top: 0;
-            right: 15px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            background-color: #8A2F32;
+            transform: translateY(-1px);
         }
     </style>
 
@@ -123,9 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 
     <div id="b">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h1>管理員公告</h1>
+            <h1>系統公告</h1>
             <button onclick="location.href='admin-insert-announcement.php'"
-                style="padding: 8px 14px; background: #1E3A8A; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">
+                style="padding: 8px 14px; background: #8B5E3C; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">
                 新增公告
             </button>
         </div>
@@ -139,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                 <label>結束日期：</label>
                 <input type="date" id="end_date" name="end_date" value="<?php echo $_POST['end_date'] ?? ''; ?>">
                 <input type="text" id="query_name" name="query_name" placeholder="查詢主題">
-                <button type="submit" id="query_btn" style="padding:6px 12px; background:#2563EB; color:white; border:none; border-radius:6px; cursor:pointer;">查詢</button>
+                <button type="submit" id="query_btn" style="padding:6px 12px; background:#8B5E3C; color:white; border:none; border-radius:6px; cursor:pointer;">查詢</button>
             </form>
         </div>
 
@@ -222,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 
         // 顯示公告 UI
         if ($result->num_rows > 0) {
+            echo '<div style="max-height:500px; overflow-y:auto;">';
             while ($row = $result->fetch_assoc()) {
                 echo '<div class="announcement">';
                 echo '<div class="btn-area">';
@@ -233,6 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                 echo '<p><strong>時間：</strong>' . htmlspecialchars($row['start_time']) . ' ~ ' . htmlspecialchars($row['end_time']) . '</p>';
                 echo '</div>';
             }
+            echo '</div>'; 
         } else {
             echo "<p>目前沒有公告。</p>";
         }
@@ -251,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                 if (xhr.status === 200) {
                     let res = xhr.responseText.trim();
                     if (res === "success") {
-                        alert("刪除管理員公告成功！");
+                        alert("刪除系統公告成功！");
                         // 重新整理頁面，保持更新
                         location.reload();
                     } else {

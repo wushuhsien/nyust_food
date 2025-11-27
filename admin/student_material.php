@@ -75,18 +75,13 @@ if (isset($_POST['add_student'])) {
         :root {
             --main-green: #4caf50;
             --dark-green: #388e3c;
+            --main-brown: #C19A6B;
+            --dark-brown: #5C3D2E;
             --red: #e53935;
             --blue: #1e88e5;
             --purple: #8e24aa;
             --orange: #fb8c00;
             --gray: #6c757d;
-        }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background: #f4f6f9;
-            margin: 0;
-            padding: 20px;
         }
 
         .container {
@@ -103,6 +98,7 @@ if (isset($_POST['add_student'])) {
             margin-bottom: 20px;
             font-size: 24px;
             font-weight: 600;
+            margin: 20px auto -20px auto;
         }
 
         .add-box {
@@ -127,7 +123,7 @@ if (isset($_POST['add_student'])) {
             border: none;
             border-radius: 10px;
             font-size: 15px;
-            background: var(--main-green);
+            background: var(--main-brown);
             color: white;
             font-weight: 600;
             cursor: pointer;
@@ -135,21 +131,29 @@ if (isset($_POST['add_student'])) {
         }
 
         .add-box button:hover {
-            background: var(--dark-green);
+            background: var(--dark-brown);
             transform: scale(1.02);
+        }
+
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 14px;
+            border: 1px solid #eee;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid #eee;
+            min-width: 800px;
         }
 
         thead {
-            background: var(--main-green);
+            background: var(--main-brown);
             color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
         thead th {
@@ -161,10 +165,13 @@ if (isset($_POST['add_student'])) {
         tbody td {
             padding: 12px 14px;
             border-bottom: 1px solid #f2f2f2;
+            text-align: center;
+            font-size: 14px;
+            color: #333;
         }
 
         tbody tr:hover {
-            background: #e8f5e9;
+            background: #f5f0eb;
         }
 
         .status-form select {
@@ -255,25 +262,8 @@ if (isset($_POST['add_student'])) {
         .search-box button:hover {
             opacity: 0.85;
         }
-
-        /* 日誌按鈕 */
-        .btn-log {
-            background: var(--gray);
-            color: white;
-            text-decoration: none;
-            /* 去掉下劃線 */
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            transition: 0.2s;
-        }
-
-        .btn-log:hover {
-            opacity: 0.85;
-            transform: scale(1.05);
-        }
     </style>
+
 </head>
 
 <body>
@@ -298,101 +288,99 @@ if (isset($_POST['add_student'])) {
             <input type="text" name="email" placeholder="電子郵件">
             <button type="submit" name="add_student">＋ 新增學生/教職員</button>
         </form>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>帳號</th>
+                        <!-- <th>密碼</th> -->
+                        <th>姓名</th>
+                        <th>暱稱</th>
+                        <th>電話</th>
+                        <th>電子郵件</th>
+                        <th>建立時間</th>
+                        <th>狀態</th>
+                        <th>停機原因</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    // 判斷是否按下查詢按鈕
+                    if (isset($_POST['search_btn']) && !empty($_POST['query_name'])) {
+                        $query_name = $link->real_escape_string($_POST['query_name']);
 
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>帳號</th>
-                    <!-- <th>密碼</th> -->
-                    <th>姓名</th>
-                    <th>暱稱</th>
-                    <th>電話</th>
-                    <th>電子郵件</th>
-                    <th>建立時間</th>
-                    <th>狀態</th>
-                    <th>停機原因</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-
-                <?php
-                // 判斷是否按下查詢按鈕
-                if (isset($_POST['search_btn']) && !empty($_POST['query_name'])) {
-                    $query_name = $link->real_escape_string($_POST['query_name']);
-
-                    $sql = "SELECT a.`account`, a.`password`, b.`name`, b.`nickname`, b.`phone`, b.`email`,
-                            a.`created_time`, a.`permission`, a.`stop_reason`
-                            FROM `account` As a
-                            INNER JOIN `student` AS b ON a.`account` = b.`account`
-                            WHERE a.role=0 AND b.`name` LIKE '%$query_name%'";
-                } else {
-                    // 沒按查詢 → 顯示全部
-                    $sql = "SELECT a.`account`, a.`password`, b.`name`, b.`nickname`, b.`phone`, b.`email`,
-                            a.`created_time`, a.`permission`, a.`stop_reason`
-                            FROM `account` As a
-                            INNER JOIN `student` AS b ON a.`account` = b.`account`
-                            WHERE a.role=0";
-                }
-
-                $result = $link->query($sql);
-                $i = 1;
-
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                ?>
-                        <tr>
-                            <td style="text-align:center"><?= $i ?></td>
-                            <td><?= $row['account'] ?></td>
-                            <!-- <td class="password">••••••••</td> -->
-                            <td><?= $row['name'] ?></td>
-                            <td><?= $row['nickname'] ?></td>
-                            <td><?= $row['phone'] ?></td>
-                            <td><?= $row['email'] ?></td>
-                            <td><?= $row['created_time'] ?></td>
-
-                            <td>
-                                <form method='POST' class="status-form">
-                                    <select name='permission'>
-                                        <option value='0' <?= ($row['permission'] == 0 ? 'selected' : '') ?>>啟用</option>
-                                        <option value='1' <?= ($row['permission'] == 1 ? 'selected' : '') ?>>停用</option>
-                                    </select>
-                            </td>
-
-                            <td><?= $row['stop_reason'] ?></td>
-
-                            <td>
-                                <div class="action-box">
-                                    <div class="btn-group">
-                                        <input type="hidden" name="account" value="<?= $row['account'] ?>">
-                                        <button type="submit" name="update_permission" class="btn-edit">修改</button>
-                                        <button type="button" class="btn-del">刪除</button>
-                                    </div>
-
-                                    <hr class="divider"> <!-- 分隔線 -->
-
-                                    <div class="btn-group">
-                                        <button class="btn-order">歷史訂單</button>
-                                        <button class="btn-rate">評價</button>
-                                        <button class="btn-chart">圖表</button>
-                                        <a href="accountaction.php?account=<?= $row['account'] ?>" class="btn-log">日誌</a>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-
-                        </tr>
-                <?php
-                        $i++;
+                        $sql = "SELECT a.`account`, a.`password`, b.`name`, b.`nickname`, b.`phone`, b.`email`,
+            a.`created_time`, a.`permission`, a.`stop_reason`
+            FROM `account` As a
+            INNER JOIN `student` AS b ON a.`account` = b.`account`
+            WHERE a.role=0 AND b.`name` LIKE '%$query_name%'";
+                    } else {
+                        // 沒按查詢 → 顯示全部
+                        $sql = "SELECT a.`account`, a.`password`, b.`name`, b.`nickname`, b.`phone`, b.`email`,
+            a.`created_time`, a.`permission`, a.`stop_reason`
+            FROM `account` As a
+            INNER JOIN `student` AS b ON a.`account` = b.`account`
+            WHERE a.role=0";
                     }
-                } else {
-                    echo "<tr><td colspan='10' style='text-align:center;color:#888'>無學生/教職員資料</td></tr>";
-                }
-                ?>
 
-            </tbody>
-        </table>
+                    $result = $link->query($sql);
+                    $i = 1;
+
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            $logUrl = "accountaction.php?account=" . urlencode($row['account']); // 確保帳號安全
+                    ?>
+                            <tr>
+                                <td style="text-align:center"><?= $i ?></td>
+                                <td><?= htmlspecialchars($row['account']) ?></td>
+                                <td><?= htmlspecialchars($row['name']) ?></td>
+                                <td><?= htmlspecialchars($row['nickname']) ?></td>
+                                <td><?= htmlspecialchars($row['phone']) ?></td>
+                                <td><?= htmlspecialchars($row['email']) ?></td>
+                                <td><?= $row['created_time'] ?></td>
+
+                                <td>
+                                    <form method="POST" class="status-form">
+                                        <select name="permission">
+                                            <option value="0" <?= ($row['permission'] == 0 ? 'selected' : '') ?>>啟用</option>
+                                            <option value="1" <?= ($row['permission'] == 1 ? 'selected' : '') ?>>停用</option>
+                                        </select>
+                                        <input type="hidden" name="account" value="<?= htmlspecialchars($row['account']) ?>">
+                                    </form>
+                                </td>
+
+                                <td><?= htmlspecialchars($row['stop_reason']) ?></td>
+
+                                <td>
+                                    <div class="action-box">
+                                        <div class="btn-group">
+                                            <button type="submit" form="status-form" class="btn-edit">修改</button>
+                                            <button type="button" class="btn-del">刪除</button>
+                                        </div>
+
+                                        <hr class="divider">
+
+                                        <div class="btn-group">
+                                            <button class="btn-order">歷史訂單</button>
+                                            <button class="btn-rate">評價</button>
+                                            <button class="btn-chart">圖表</button>
+                                            <button class="btn-log" onclick="window.location.href='<?php echo $logUrl; ?>'">日誌</button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                    <?php
+                            $i++;
+                        }
+                    } else {
+                        echo "<tr><td colspan='10' style='text-align:center;color:#888'>無學生/教職員資料</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </body>
 

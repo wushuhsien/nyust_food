@@ -138,9 +138,9 @@ include "db.php";
             ?>
         </div>
 
-        <!-- 中間：管理員公告 -->
+        <!-- 中間：系統公告 -->
         <div style="flex:1; border:2px solid #4a90e2; border-radius:10px; padding:15px; background-color:#e8f3ff; max-height:500px; overflow-y:auto;">
-            <h2 style="text-align:center; color:#005AB5;">管理員公告</h2>
+            <h2 style="text-align:center; color:#005AB5;">系統公告</h2>
             <?php
             $sql_admin = "SELECT announcement_id, topic, description, start_time, end_time
                       FROM announcement
@@ -160,7 +160,7 @@ include "db.php";
                     echo '</div>';
                 }
             } else {
-                echo "<p>目前沒有管理員公告。</p>";
+                echo "<p>目前沒有系統公告。</p>";
             }
             ?>
         </div>

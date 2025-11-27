@@ -8,7 +8,7 @@ include "db.php";
 
 <head>
     <meta charset="UTF-8">
-    <title>店家menu</title>
+    <title>店家首頁</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         #b {
@@ -82,9 +82,9 @@ include "db.php";
             ?>
         </div>
 
-        <!-- 右邊：管理員公告 -->
+        <!-- 右邊：系統公告 -->
         <div style="flex:1; border:2px solid #f28c28; border-radius:10px; padding:15px; background-color:#fff3e6; max-height:500px; overflow-y:auto;">
-            <h2 style="text-align:center; color:#b35c00;">管理員公告</h2>
+            <h2 style="text-align:center; color:#b35c00;">系統公告</h2>
             <?php
             $sql_admin = "SELECT announcement_id, topic, description, start_time, end_time
                       FROM announcement
@@ -104,7 +104,7 @@ include "db.php";
                     echo '</div>';
                 }
             } else {
-                echo "<p>目前沒有管理員公告。</p>";
+                echo "<p>目前沒有系統公告。</p>";
             }
             ?>
         </div>

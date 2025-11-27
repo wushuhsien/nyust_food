@@ -1,14 +1,12 @@
 body {
-    margin: 0;
-    font-family: 'Inter', 'Segoe UI', sans-serif;
-    background-color: #F2F4F6;
-    /* 科技灰 */
+    font-family: Arial, sans-serif;
+    margin: 20;
+    background: #f2f6fc;
 }
 
 /* 頂部選單 */
 .top-menu {
-    background-color: #004B97;
-    /* 雲科藍 */
+    background-color: #8B5E3C;
     display: flex;
     align-items: center;
     padding: 0 30px;
@@ -42,14 +40,16 @@ body {
     margin-left: 15px;
     transition: all 0.25s ease;
     font-size: 15px;
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(3px);
+    background: #C19A6B;
+    /* 低調奶咖 */
+    opacity: 0.95;
 }
 
 .menu-item:hover {
-    background: #1E90FF;
-    /* 點綴亮藍 */
-    box-shadow: 0 4px 10px rgba(30, 144, 255, 0.4);
+    background: #6F4E37;
+    /* 深摩卡棕 */
+    box-shadow: 0 4px 12px rgba(111, 78, 55, 0.45);
+    transform: translateY(-1px);
 }
 
 /* 下拉選單 */
@@ -59,23 +59,23 @@ body {
     top: 100%;
     left: 0;
     min-width: 220px;
-    background-color: #003A75;
+    background-color: #4A3728;
+    /* 暖黑巧克力 */
     border-radius: 0 0 10px 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
     z-index: 1000;
 }
 
 .dropdown a {
     display: block;
     padding: 12px 20px;
-    color: #ffffff;
+    color: #FDF8F2;
+    /* 柔白 */
     text-decoration: none;
     font-size: 14px;
-
-    /* << 新增：分隔線 >> */
-    border-bottom: 1px solid rgba(255, 255, 255, 1);
-
-    transition: background 0.2s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    /* 透明暖白分隔 */
+    transition: all 0.2s;
 }
 
 .dropdown a:last-child {
@@ -83,9 +83,12 @@ body {
 }
 
 .dropdown a:hover {
-    background-color: #1E90FF;
+    background-color: #6F4E37;
+    /* 跟按鈕 hover 一致 */
+    color: #fff;
+    padding-left: 24px;
+    /* Hover 文字位移一點點增加層次 */
 }
-
 
 .menu-item:hover .dropdown {
     display: block;

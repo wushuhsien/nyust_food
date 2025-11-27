@@ -61,25 +61,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <title>店家新增公告</title>
 
     <style>
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background-color: #E8EEFF;
-            padding: 20px;
-        }
-
-        #header {
-            background-color: #1E3A8A;
-            height: 60px;
-            text-align: center;
-            line-height: 60px;
-            color: white;
-            position: relative;
-            font-size: 22px;
-            font-weight: bold;
-            border-radius: 8px;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-        }
-
         #container {
             background-color: white;
             padding: 20px;
@@ -87,11 +68,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             max-width: 650px;
             margin: 20px auto;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            border: 1px solid #CBD5E1;
+            border: 1px solid #D7C1B2;
         }
 
         h2 {
-            color: #1E3A8A;
+            color: #5A3E2B;
             margin-top: 0;
         }
 
@@ -105,14 +86,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             width: 80px;
             /* 控制標籤寬度，不會被撐開 */
             font-weight: bold;
-            color: #1E293B;
+            color: #5A3E2B;
         }
 
         .form-row input[type="text"] {
             width: 300px;
             /* 改成比較舒服的寬度 */
             padding: 8px;
-            border: 1px solid #C7D2FE;
+            border: 1px solid #C19A6B;
             border-radius: 6px;
         }
 
@@ -121,14 +102,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             /* 調整內容框不要太長 */
             height: 150px;
             padding: 10px;
-            border: 1px solid #C7D2FE;
+            border: 1px solid #C19A6B;
             border-radius: 6px;
         }
 
         select {
             width: 200px;
             padding: 6px;
-            border: 1px solid #C7D2FE;
+            border: 1px solid #C19A6B;
             border-radius: 4px;
             font-size: 12px;
             transition: 0.2s;
@@ -148,7 +129,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .time-row input[type="datetime-local"] {
             width: 250px;
             padding: 8px;
-            border: 1px solid #C7D2FE;
+            border: 1px solid #C19A6B;
             border-radius: 6px;
         }
 
@@ -160,7 +141,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         .btn-save {
-            background-color: #2563EB;
+            background-color: #C19A6B;
             color: white;
             padding: 10px 22px;
             border: none;
@@ -170,11 +151,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         .btn-save:hover {
-            background-color: #1D4ED8;
+            background-color: #8B5E3C;
         }
 
         .btn-cancel {
-            background-color: #6B7280;
+            background-color: #6F4E37;
             color: white;
             padding: 10px 22px;
             border: none;
@@ -184,7 +165,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         .btn-cancel:hover {
-            background-color: #4B5563;
+            background-color: #5A3B2A;
         }
     </style>
 </head>
