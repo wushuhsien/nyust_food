@@ -1,0 +1,43 @@
+[
+    {
+        "report_id": 1,
+        "user_account": "stu002",
+        "description": "系統延遲太久",
+        "images": [
+            "..\/picture\/report\/admin\/20250511_stu002_1.png",
+            "..\/picture\/report\/admin\/20250511_stu002_2.webp"
+        ],
+        "time": "2025-05-11 14:00:00",
+        "status": "處理中"
+    },
+    {
+        "report_id": 2,
+        "user_account": "stu001",
+        "description": "當機跑不動",
+        "images": [
+            "..\/picture\/report\/admin\/20251122_stu001_1.png"
+        ],
+        "time": "2025-11-22 04:14:18",
+        "status": "處理中"
+    },
+    {
+        "report_id": 3,
+        "user_account": "stu004",
+        "description": "404錯誤",
+        "images": [
+            "..\/picture\/report\/admin\/20251201_stu004_1.jpg",
+            "..\/picture\/report\/admin\/20251201_stu004_2.jpg"
+        ],
+        "time": "2025-12-01 09:00:00",
+        "store_account": "store003",
+        "status": "處理中"
+    },
+    {
+        "report_id": 4,
+        "user_account": "stu001",
+        "description": "bug",
+        "images": [],
+        "time": "2025-12-01 09:00:00",
+        "status": "處理中"
+    }
+]

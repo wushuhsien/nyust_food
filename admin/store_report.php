@@ -111,7 +111,8 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
             max-width: 100%;
             max-height: 300px;
             border-radius: 8px;
-            margin-bottom: 15px; /* 圖片下方增加空間 */
+            margin-bottom: 15px;
+            /* 圖片下方增加空間 */
         }
 
         .close-btn {
@@ -142,7 +143,7 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
         <table>
             <tr>
                 <th>流水號</th>
-                <th>投訴人</th>
+                <th>投訴者</th>
                 <th>訴求</th>
                 <th>圖片</th>
                 <th>時間</th>
@@ -225,6 +226,14 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
             index = 0;
             document.getElementById("modalImg").src = images[index];
             document.getElementById("modal").style.display = "flex";
+
+            // 判斷是否顯示上一張/下一張按鈕
+            const navBtns = document.querySelectorAll(".btn-nav");
+            if (images.length <= 1) {
+                navBtns.forEach(btn => btn.style.display = "none");
+            } else {
+                navBtns.forEach(btn => btn.style.display = "inline-block");
+            }
         }
 
         function closeModal() {
@@ -246,4 +255,5 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
         }
     </script>
 </body>
+
 </html>
