@@ -2,9 +2,21 @@
 session_start();
 include "../db.php";  // 引入資料庫連線
 
+// ✅ 先抓 store 資料表
+$sql_store_list = "SELECT account, name FROM store ORDER BY name ASC";
+$result_store_list = $link->query($sql_store_list);
+
+$stores = [];
+if ($result_store_list && $result_store_list->num_rows > 0) {
+    while ($r = $result_store_list->fetch_assoc()) {
+        $stores[] = $r;
+    }
+}
+
 // 若表單送出 → 新增資料
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
+    $store_account = $_POST['store_account']; // ✅ 你選擇的店家帳號
     $topic = $_POST['topic'];
     $description = $_POST['description'];
     $start_time = $_POST['start_time'];
@@ -17,22 +29,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $type = "店休";
 
-    // 從 session 拿管理員帳號
-    $account = $_SESSION['user'] ?? null;
-
-    if (!$account) {
+    // ✅ 至少要確認管理者有登入
+    $admin_account = $_SESSION['user'] ?? null;
+    if (!$admin_account) {
         echo "<script>alert('請重新登入'); location.href='login.php';</script>";
         exit;
     }
 
-    // INSERT 包含 account
+    // ✅ INSERT 存入「指定店家」的 account，而不是管理者自己的
     $insert = $link->prepare("
         INSERT INTO announcement (topic, description, start_time, end_time, type, account)
         VALUES (?, ?, ?, ?, ?, ?)
     ");
 
     // 6 個欄位 → 6 個 s
-    $insert->bind_param("ssssss", $topic, $description, $start_time, $end_time, $type, $account);
+    $insert->bind_param("ssssss", $topic, $description, $start_time, $end_time, $type, $store_account);
 
     if ($insert->execute()) {
         echo "<script>alert('新增成功'); location.href='store-announcement.php';</script>";
@@ -114,6 +125,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             border-radius: 6px;
         }
 
+        select {
+            width: 200px;
+            padding: 6px;
+            border: 1px solid #C7D2FE;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+
         .time-row {
             display: flex;
             align-items: center;
@@ -177,6 +197,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <h2>新增公告</h2>
 
         <form method="POST">
+
+            <div class="form-row">
+                <label>店家名稱：</label>
+                <select name="store_account" required> <!-- ✅ 這裡改 name -->
+                    <option value="">請選擇</option>
+                    <?php foreach ($stores as $store): ?>
+                        <option value="<?= htmlspecialchars($store['account']) ?>">
+                            <?= htmlspecialchars($store['name']) ?> <!-- ✅ 顯示店家 name -->
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
             <div class="form-row">
                 <label>主題：</label>
