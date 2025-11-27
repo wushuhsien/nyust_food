@@ -97,7 +97,6 @@ if (isset($_POST['add_store'])) {
             --dark-green: #388e3c;
             --main-brown: #C19A6B;
             --dark-brown: #5C3D2E;
-            --red: #e53935;
             --blue: #1e88e5;
             --purple: #8e24aa;
             --orange: #fb8c00;
@@ -364,10 +363,6 @@ if (isset($_POST['add_store'])) {
 
         .btn-edit {
             background: var(--blue);
-        }
-
-        .btn-del {
-            background: var(--red);
         }
 
         .btn-order {
@@ -643,7 +638,6 @@ if (isset($_POST['add_store'])) {
                                             <form method="POST">
                                                 <input type="hidden" name="account" value="<?= $row['account'] ?>">
                                                 <button type="submit" name="update" class="btn-edit">修改</button>
-                                                <button type="button" class="btn-del">刪除</button>
                                             </form>
                                         </div>
 
