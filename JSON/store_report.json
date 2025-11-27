@@ -1,0 +1,35 @@
+[
+  {
+    "report_id": 1,
+    "user_account": "stu001",
+    "description": "餐點製作太慢",
+    "images": [
+      "../picture/report/store/20250510_stu001_store001_01.png",
+      "../picture/report/store/20250510_stu001_store001_02.jpg"
+    ],
+    "time": "2025-05-10 12:30:00",
+    "store_account": "store001",
+    "status": "未處理"
+  },
+  {
+    "report_id": 2,
+    "user_account": "stu004",
+    "description": "餐點不乾淨",
+    "images": [
+        "../picture/report/store/20251118_stu004_store002_01.png"
+    ],
+    "time": "2025-11-18 04:14:18",
+    "store_account": "store002",
+    "status": "已完成"
+  },
+  {
+    "report_id": 3,
+    "user_account": "stu001",
+    "description": "餐點有異物",
+    "images": [
+    ],
+    "time": "2025-11-28 00:00:00",
+    "store_account": "store003",
+    "status": "處理中"
+  }
+]
