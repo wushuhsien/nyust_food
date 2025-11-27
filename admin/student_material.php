@@ -308,7 +308,7 @@ if (isset($_POST['add_student'])) {
                     <th>姓名</th>
                     <th>暱稱</th>
                     <th>電話</th>
-                    <th>Email</th>
+                    <th>電子郵件</th>
                     <th>建立時間</th>
                     <th>狀態</th>
                     <th>停機原因</th>
@@ -354,7 +354,6 @@ if (isset($_POST['add_student'])) {
 
                             <td>
                                 <form method='POST' class="status-form">
-                                    <input type='hidden' name='account' value='<?= $row['account'] ?>'>
                                     <select name='permission'>
                                         <option value='0' <?= ($row['permission'] == 0 ? 'selected' : '') ?>>啟用</option>
                                         <option value='1' <?= ($row['permission'] == 1 ? 'selected' : '') ?>>停用</option>
@@ -366,11 +365,9 @@ if (isset($_POST['add_student'])) {
                             <td>
                                 <div class="action-box">
                                     <div class="btn-group">
-                                        <form method="POST">
-                                            <input type="hidden" name="account" value="<?= $row['account'] ?>">
-                                            <button type="submit" name="update_permission" class="btn-edit">修改狀態</button>
-                                            <button type="button" class="btn-del">刪除</button>
-                                        </form>
+                                        <input type="hidden" name="account" value="<?= $row['account'] ?>">
+                                        <button type="submit" name="update_permission" class="btn-edit">修改狀態</button>
+                                        <button type="button" class="btn-del">刪除</button>
                                     </div>
 
                                     <hr class="divider"> <!-- 分隔線 -->
@@ -398,4 +395,5 @@ if (isset($_POST['add_student'])) {
         </table>
     </div>
 </body>
+
 </html>
