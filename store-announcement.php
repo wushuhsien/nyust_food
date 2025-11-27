@@ -26,32 +26,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     <title>店家公告</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            margin: 20px;
-            background-color: #fdf6f0; /* 淡橘色背景 */
-        }
-
         #b {
-            background-color: #fff7f0; /* 淺橘色卡片背景 */
+            background-color: #fff7f0;
+            /* 淺橘色卡片背景 */
             margin: 20px auto;
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             max-width: 780px;
             text-align: left;
-            border: 1px solid #f0d4b2; /* 卡片邊框橘色系 */
+            border: 1px solid #f0d4b2;
+            /* 卡片邊框橘色系 */
         }
 
         #b h1 {
             font-size: 24px;
             margin-top: 0;
-            color: #b35c00; /* 主標題橘色 */
+            color: #b35c00;
+            /* 主標題橘色 */
         }
 
         input {
             padding: 8px 10px;
-            border: 1px solid #f2c79e; /* 橘色邊框 */
+            border: 1px solid #f2c79e;
+            /* 橘色邊框 */
             border-radius: 8px;
         }
 
@@ -62,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         }
 
         .announcement {
-            background-color: #fff3e6; /* 淡橘色卡片 */
+            background-color: #fff3e6;
+            /* 淡橘色卡片 */
             border: 1px solid #f2c79e;
             border-radius: 10px;
             padding: 16px 20px;
@@ -73,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         .announcement p {
             margin: 6px 0;
             line-height: 1.5;
-            color: #4b2500; /* 深橘色文字 */
+            color: #4b2500;
+            /* 深橘色文字 */
         }
 
         .announcement .btn-area {
@@ -87,18 +87,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         .edit-btn {
             padding: 5px 10px;
             font-size: 12px;
-            background-color: #f28c28; /* 橘色按鈕 */
+            background-color: #f28c28;
+            /* 橘色按鈕 */
             color: white;
         }
 
         .edit-btn:hover {
-            background-color: #d97706; /* 深橘色 hover */
+            background-color: #d97706;
+            /* 深橘色 hover */
         }
 
         .delete-btn {
             padding: 5px 10px;
             font-size: 12px;
-            background-color: #dc2626; /* 保留紅色刪除按鈕 */
+            background-color: #dc2626;
+            /* 保留紅色刪除按鈕 */
             color: white;
         }
 
@@ -115,13 +118,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         }
 
         .search-form button {
-            background-color: #f28c28; /* 橘色搜尋按鈕 */
+            background-color: #f28c28;
+            /* 橘色搜尋按鈕 */
             color: white;
             padding: 6px 12px;
         }
 
         .search-form button:hover {
-            background-color: #d97706; /* 深橘色 hover */
+            background-color: #d97706;
+            /* 深橘色 hover */
         }
     </style>
 </head>
@@ -243,4 +248,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         });
     </script>
 </body>
+
 </html>

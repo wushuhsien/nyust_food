@@ -6,7 +6,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
 <head>
     <meta charset="UTF-8">
-    <title>店家問題</title>
+    <title>管理員menu</title>
     <link rel="stylesheet" href="../css/admin_menu.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>

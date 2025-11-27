@@ -6,18 +6,18 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
 <head>
     <meta charset="UTF-8">
-    <title>店家問題</title>
+    <title>學生/教職員menu</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #fdf6f0;
-            /* 淡咖啡色背景 */
+            margin: 20;
+            background: #f2f6fc;
         }
+
         /* 上方橙色條 */
         .top-menu {
-            background-color: #f28c28;
+            background-color: #4a90e2;
             display: flex;
             align-items: center;
             padding: 0 30px;
@@ -35,7 +35,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
         }
 
         .top-menu h1:hover {
-            color: #ffd699;
+            color: #e8f3ff;
             /* hover 顏色變淡橙 */
         }
 
@@ -75,27 +75,27 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
             display: none;
             position: absolute;
             right: 0;
-            background-color: #fff8f0;
+            background-color: #f9faff;
             min-width: 150px;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
             border-radius: 6px;
             z-index: 1;
-            border: 1px solid #f2c79e;
+            border: 1px solid #e8f3ff;
         }
 
         .dropdown-content input[type="button"] {
             width: 100%;
             padding: 10px 12px;
             border: none;
-            background-color: #fff8f0;
+            background-color: #f9faff;
             text-align: left;
             cursor: pointer;
-            border-bottom: 1px solid #f2c79e;
+            border-bottom: 1px solid #d6e9ff;
             font-size: 14px;
         }
 
         .dropdown-content input[type="button"]:hover {
-            background-color: #f2c79e;
+            background-color: #d6e9ff;
             color: white;
         }
 
@@ -105,8 +105,8 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
         .sub-dropdown {
             display: none;
-            background-color: #fff0e0;
-            border-left: 3px solid #f28c28;
+            background-color: #f9faff;
+            border-left: 3px solid #4a90e2;
         }
 
         .sub-dropdown input[type="button"] {
@@ -117,7 +117,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
 <body>
     <div class="top-menu">
-        <h1 style="cursor:pointer;" onclick="window.location.href='store.php'">店家首頁</h1>
+        <h1 style="cursor:pointer;" onclick="window.location.href='student.php'">學生/教職員首頁</h1>
 
         <div id="top-right-box">
             <div class="user-account"><?php echo htmlspecialchars($account); ?></div>
@@ -126,14 +126,9 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
                     <i class="bi bi-gear"></i>
                 </button>
                 <div id="myDropdown" class="dropdown-content">
-                    <input type="button" value="店家設定 ▼" onclick="toggleSubMenu1()">
-                    <div id="subMenu1" class="sub-dropdown">
-                        <input type="button" value="店家資料" onclick="window.location='store_information.php'">
-                    </div>
-                    <input type="button" value="店家管理 ▼" onclick="toggleSubMenu2()">
-                    <div id="subMenu2" class="sub-dropdown">
-                        <input type="button" value="菜單管理" onclick="alert('菜單管理')">
-                        <input type="button" value="公告管理" onclick="window.location='store-announcement.php'">
+                    <input type="button" value="個人設定 ▼" onclick="toggleSubMenu()">
+                    <div id="subMenu" class="sub-dropdown">
+                        <input type="button" value="基本資料" onclick="window.location='student_information.php'">
                         <input type="button" value="歷史訂單" onclick="alert('歷史訂單')">
                         <input type="button" value="評價紀錄" onclick="alert('評價紀錄')">
                     </div>
@@ -145,13 +140,8 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
     </div>
 </body>
 <script>
-    function toggleSubMenu1() {
-        var sub = document.getElementById("subMenu1");
-        sub.style.display = (sub.style.display === "block") ? "none" : "block";
-    }
-
-    function toggleSubMenu2() {
-        var sub = document.getElementById("subMenu2");
+    function toggleSubMenu() {
+        var sub = document.getElementById("subMenu");
         sub.style.display = (sub.style.display === "block") ? "none" : "block";
     }
 
@@ -162,10 +152,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
     window.onclick = function(event) {
         if (!event.target.closest('.dropdown')) {
-            var dropdowns = document.getElementsByClassName("dropdown-content");
-            for (var i = 0; i < dropdowns.length; i++) {
-                dropdowns[i].style.display = "none";
-            }
+            document.getElementById("myDropdown").style.display = "none";
         }
     }
 </script>

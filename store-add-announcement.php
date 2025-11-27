@@ -48,13 +48,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <head>
     <meta charset="UTF-8">
     <title>店家新增公告</title>
-
     <style>
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background-color: #fdf6f0;
-            padding: 20px;
-        }
+       
 
         #container {
             background-color: #fff7f0;

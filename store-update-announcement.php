@@ -69,13 +69,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <title>店家公告修改</title>
 
     <style>
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background-color: #fdf6f0;
-            /* 淡藍背景 */
-            padding: 20px;
-        }
-
         #container {
             background-color: #fff7f0;
             /* 淺橘色卡片背景 */

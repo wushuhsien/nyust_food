@@ -98,26 +98,6 @@ $days = ["1" => "星期一", "2" => "星期二", "3" => "星期三", "4" => "星
     <meta charset="UTF-8">
     <title>店家基本資料</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #fdf6f0;
-            margin: 0;
-            padding: 0;
-        }
-
-        #a {
-            background-color: #f28c28;
-            height: 60px;
-            line-height: 60px;
-            text-align: center;
-            color: white;
-            font-size: 22px;
-            font-weight: bold;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0 0 10px 10px;
-            margin-bottom: 20px;
-        }
-
         .container {
             background-color: #fff7f0;
             max-width: 500px;
@@ -126,6 +106,14 @@ $days = ["1" => "星期一", "2" => "星期二", "3" => "星期三", "4" => "星
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             border: 1px solid #f2c79e;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-top: 12px;
+            color: #b35c00;
+            /* 主標題橘色 */
+            text-align: center;
         }
 
         .form-group {
@@ -214,7 +202,8 @@ $days = ["1" => "星期一", "2" => "星期二", "3" => "星期三", "4" => "星
 </head>
 
 <body>
-    <div id="a">店家基本資料</div>
+    <?php include "store_menu.php"; ?>
+    <h1>店家基本資料</h1>
 
     <div class="container">
         <form method="POST">

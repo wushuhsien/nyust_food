@@ -8,16 +8,9 @@ include "db.php";
 
 <head>
     <meta charset="UTF-8">
-    <title>店家首頁</title>
+    <title>店家menu</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #fdf6f0;
-            /* 淡咖啡色背景 */
-        }
-
         #b {
             background-color: #fff7f0;
             /* 淡橙色 */
@@ -49,81 +42,6 @@ include "db.php";
         .announcement p {
             margin: 6px 0;
             line-height: 1.5;
-        }
-
-        /*帳號*/
-        #top-right-box {
-            position: absolute;
-            top: 0;
-            right: 15px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .user-account {
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .dropdown {
-            position: relative;
-        }
-
-        .dropbtn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 0;
-        }
-
-        .dropbtn i {
-            font-size: 26px;
-            color: white;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            background-color: #fff8f0;
-            min-width: 150px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
-            border-radius: 6px;
-            z-index: 1;
-            border: 1px solid #f2c79e;
-        }
-
-        .dropdown-content input[type="button"] {
-            width: 100%;
-            padding: 10px 12px;
-            border: none;
-            background-color: #fff8f0;
-            text-align: left;
-            cursor: pointer;
-            border-bottom: 1px solid #f2c79e;
-            font-size: 14px;
-        }
-
-        .dropdown-content input[type="button"]:hover {
-            background-color: #f2c79e;
-            color: white;
-        }
-
-        .dropdown-content input[type="button"]:last-child {
-            border-bottom: none;
-        }
-
-        .sub-dropdown {
-            display: none;
-            background-color: #fff0e0;
-            border-left: 3px solid #f28c28;
-        }
-
-        .sub-dropdown input[type="button"] {
-            padding-left: 20px;
         }
     </style>
 </head>

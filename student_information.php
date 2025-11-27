@@ -52,26 +52,6 @@ $row = $result->fetch_assoc();
     <title>基本資料</title>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f7fa;
-            margin: 0;
-            padding: 0;
-        }
-
-        #header {
-            background: #3b82f6;
-            height: 60px;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
         .container {
             background: white;
             width: 420px;
@@ -81,16 +61,22 @@ $row = $result->fetch_assoc();
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
 
+        h1 {
+            font-size: 24px;
+            margin-top: 12px;
+            color: #2563eb;
+            text-align: center;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
 
         label {
             display: block;
-            font-size: 15px;
-            color: #333;
-            margin-bottom: 6px;
             font-weight: bold;
+            color: #000;
+            margin-bottom: 6px;
         }
 
         input[type="text"],
@@ -145,9 +131,8 @@ $row = $result->fetch_assoc();
 </head>
 
 <body>
-
-    <div id="header">基本資料</div>
-
+    <?php include "student_menu.php"; ?>
+    <h1>基本資料</h1>
     <div class="container">
 
         <form method="POST">
