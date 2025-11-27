@@ -202,51 +202,58 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $result = $link->query($sql);
             $count = 1;
-
-            while ($row = $result->fetch_assoc()) {
-                $images = [];
-
-                // 比對 JSON 找圖片
-                foreach ($jsonData as $item) {
-                    if (
-                        $item["user_account"] == $row["account_student"] &&
-                        $item["description"] == $row["description"] &&
-                        $item["time"] == $row["time"]
-                    ) {
-                        $images = $item["images"];
-                        break;
-                    }
-                }
-                $imgBtn = !empty($images) ? "<button onclick='showImages(" . htmlspecialchars(json_encode($images), ENT_QUOTES) . ")'>查看</button>" : "";
-
-                // 狀態下拉選單
-                $statusOptions = ["未處理", "處理中", "已完成"];
-                $statusSelect = "<select name='status'>";
-                foreach ($statusOptions as $status) {
-                    $selected = ($row['status'] === $status) ? "selected" : "";
-                    $statusSelect .= "<option value='{$status}' $selected>{$status}</option>";
-                }
-                $statusSelect .= "</select>";
-
-                // 表格裡直接放 form 讓每列自己送出
+            if ($result->num_rows == 0) {
                 echo "<tr>
-            <td>{$count}</td>
-            <td>{$row['account_student']}</td>
-            <td>{$row['description']}</td>
-            <td>$imgBtn</td>
-            <td>{$row['time']}</td>
-            <td>                
-            <form method='POST' style='display:inline-block;'>
-                $statusSelect
-            </td>
-            <td>                    
-                 <input type='hidden' name='report_id' value='{$row['report_id']}'>
-                    <input type='hidden' name='action' value='update'>
-                    <button type='submit' class='action-btn update-btn'>修改</button>
-                </form>
-            </td>
-          </tr>";
-                $count++;
+                        <td colspan='7' style='padding:20px; font-size:18px; color:#888;'>
+                            目前沒有任何投訴資料
+                        </td>
+                    </tr>";
+            } else {
+                while ($row = $result->fetch_assoc()) {
+                    $images = [];
+
+                    // 比對 JSON 找圖片
+                    foreach ($jsonData as $item) {
+                        if (
+                            $item["user_account"] == $row["account_student"] &&
+                            $item["description"] == $row["description"] &&
+                            $item["time"] == $row["time"]
+                        ) {
+                            $images = $item["images"];
+                            break;
+                        }
+                    }
+                    $imgBtn = !empty($images) ? "<button onclick='showImages(" . htmlspecialchars(json_encode($images), ENT_QUOTES) . ")'>查看</button>" : "";
+
+                    // 狀態下拉選單
+                    $statusOptions = ["未處理", "處理中", "已完成"];
+                    $statusSelect = "<select name='status'>";
+                    foreach ($statusOptions as $status) {
+                        $selected = ($row['status'] === $status) ? "selected" : "";
+                        $statusSelect .= "<option value='{$status}' $selected>{$status}</option>";
+                    }
+                    $statusSelect .= "</select>";
+
+                    // 表格裡直接放 form 讓每列自己送出
+                    echo "<tr>
+                            <td>{$count}</td>
+                            <td>{$row['account_student']}</td>
+                            <td>{$row['description']}</td>
+                            <td>$imgBtn</td>
+                            <td>{$row['time']}</td>
+                            <td>                
+                            <form method='POST' style='display:inline-block;'>
+                                $statusSelect
+                            </td>
+                            <td>                    
+                                <input type='hidden' name='report_id' value='{$row['report_id']}'>
+                                    <input type='hidden' name='action' value='update'>
+                                    <button type='submit' class='action-btn update-btn'>修改</button>
+                                </form>
+                            </td>
+                        </tr>";
+                    $count++;
+                }
             }
             ?>
 

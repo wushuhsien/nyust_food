@@ -159,46 +159,54 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
 
             $result = $link->query($sql);
             $count = 1;
-
-            while ($row = $result->fetch_assoc()) {
-                $images = [];
-
-                // 比對 JSON 找圖片
-                foreach ($jsonData as $item) {
-                    if (
-                        $item["user_account"] == $row["account_student"] &&
-                        $item["description"] == $row["description"] &&
-                        $item["time"] == $row["time"] &&
-                        $item["store_account"] == $row["account_store"]
-                    ) {
-                        $images = $item["images"];
-                        break;
-                    }
-                }
-
-                if (!empty($images)) {
-                    $imgJson = htmlspecialchars(json_encode($images), ENT_QUOTES);
-                    $btn = "<button onclick='showImages($imgJson)'>查看</button>";
-                } else {
-                    $btn = "";
-                }
-
-                // 狀態顯示樣式
-                $statusClass = "s1";
-                if ($row['status'] === "處理中") $statusClass = "s2";
-                if ($row['status'] === "已完成") $statusClass = "s3";
-
+            if ($result->num_rows == 0) {
                 echo "
-            <tr>
-                <td>{$count}</td>
-                <td>{$row['account_student']}</td>
-                <td>{$row['description']}</td>
-                <td>$btn</td>
-                <td>{$row['time']}</td>
-                <td>{$row['account_store']}</td>
-                <td><span class='status {$statusClass}'>{$row['status']}</span></td>
-            </tr>";
-                $count++;
+                        <tr>
+                            <td colspan='7' style='padding:20px; font-size:18px; color:#888;'>
+                                目前沒有任何投訴資料
+                            </td>
+                        </tr>
+                    ";
+            } else {
+                while ($row = $result->fetch_assoc()) {
+                    $images = [];
+
+                    // 比對 JSON 找圖片
+                    foreach ($jsonData as $item) {
+                        if (
+                            $item["user_account"] == $row["account_student"] &&
+                            $item["description"] == $row["description"] &&
+                            $item["time"] == $row["time"] &&
+                            $item["store_account"] == $row["account_store"]
+                        ) {
+                            $images = $item["images"];
+                            break;
+                        }
+                    }
+
+                    if (!empty($images)) {
+                        $imgJson = htmlspecialchars(json_encode($images), ENT_QUOTES);
+                        $btn = "<button onclick='showImages($imgJson)'>查看</button>";
+                    } else {
+                        $btn = "";
+                    }
+
+                    // 狀態顯示樣式
+                    $statusClass = "s1";
+                    if ($row['status'] === "處理中") $statusClass = "s2";
+                    if ($row['status'] === "已完成") $statusClass = "s3";
+
+                    echo "<tr>
+                            <td>{$count}</td>
+                            <td>{$row['account_student']}</td>
+                            <td>{$row['description']}</td>
+                            <td>$btn</td>
+                            <td>{$row['time']}</td>
+                            <td>{$row['account_store']}</td>
+                            <td><span class='status {$statusClass}'>{$row['status']}</span></td>
+                        </tr>";
+                    $count++;
+                }
             }
             ?>
 
