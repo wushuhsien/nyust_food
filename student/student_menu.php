@@ -132,7 +132,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
                         <input type="button" value="歷史訂單" onclick="alert('歷史訂單')">
                         <input type="button" value="評價紀錄" onclick="alert('評價紀錄')">
                     </div>
-                    <input type="button" value="問題" onclick="alert('問題按鈕')">
+                    <input type="button" value="問題" onclick="window.location='student_report.php'">
                     <input type="button" value="登出" onclick="window.location='login.html'">
                 </div>
             </div>

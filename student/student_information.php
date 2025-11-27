@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "db.php"; // 你的資料庫連線
+include "../db.php"; // 你的資料庫連線
 
 $account = $_SESSION['user'] ?? "";
 

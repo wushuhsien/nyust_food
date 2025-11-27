@@ -37,7 +37,7 @@ if ($result->num_rows === 1) {
         // 根據 role 導向不同頁面
         if ($role == 0) {
             addLoginAction($link, $username);
-            echo "<script>alert('登入成功！'); window.location='student.php';</script>";
+            echo "<script>alert('登入成功！'); window.location='student/student.php';</script>";
         } else if ($role == 1) {
             addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='store.php';</script>";
