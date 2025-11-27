@@ -102,7 +102,7 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
         <!-- 查詢按鈕，放在 container 外面 -->
         <div class="action-bar">
             <div class="btn-group">
-                <button type="button" class="search-btn" onclick="window.location='student_material.php'">返回</button>
+                <button type="button" class="search-btn" onclick="history.back()">返回</button>
                 <button type="button" class="search-btn" style="margin-left:10px">圖表</button>
             </div>
             <!-- 每頁筆數選單 -->

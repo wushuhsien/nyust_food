@@ -626,7 +626,7 @@ if (isset($_POST['add_store'])) {
                                     <div class="btn-group">
                                         <form method="POST">
                                             <input type="hidden" name="account" value="<?= $row['account'] ?>">
-                                            <button type="submit" name="update" class="btn-edit">修改狀態</button>
+                                            <button type="submit" name="update" class="btn-edit">修改</button>
                                             <button type="button" class="btn-del">刪除</button>
                                         </form>
                                     </div>
@@ -637,7 +637,7 @@ if (isset($_POST['add_store'])) {
                                         <button class="btn-order">歷史訂單</button>
                                         <button class="btn-rate">評價</button>
                                         <button class="btn-chart">圖表</button>
-                                        <a href="student_accountaction.php?account=<?= $row['account'] ?>" class="btn-log">日誌</a>
+                                        <a href="accountaction.php?account=<?= $row['account'] ?>" class="btn-log">日誌</a>
                                     </div>
                                 </div>
                             </td>
