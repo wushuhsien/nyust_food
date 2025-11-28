@@ -103,6 +103,15 @@ if (isset($_POST['add_store'])) {
             --gray: #6c757d;
         }
 
+        .container {
+            width: 95%;
+            margin: 20px auto 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
         h2 {
             text-align: center;
             margin-bottom: 20px;
@@ -287,24 +296,20 @@ if (isset($_POST['add_store'])) {
             /* 按鈕不縮小 */
         }
 
-        .table-wrapper {
-            max-height: 400px;
-            overflow-y: auto;
-            border-radius: 14px;
-            border: 1px solid #eee;
-        }
-
         /* 表格 */
         table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 800px;
             border-radius: 14px;
-            overflow: hidden;
         }
 
         thead {
-            background: #C19A6B;
+            background: var(--main-brown);
             color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
 
         thead th {
@@ -316,11 +321,13 @@ if (isset($_POST['add_store'])) {
         tbody td {
             padding: 12px 14px;
             border-bottom: 1px solid #f2f2f2;
+            text-align: center;
+            font-size: 14px;
+            color: #333;
         }
 
         tbody tr:hover {
-            background: #f3e6db;
-            /* 淺主色背景 hover */
+            background: #f5f0eb;
         }
 
         .status-form select {
@@ -399,6 +406,46 @@ if (isset($_POST['add_store'])) {
             margin-bottom: 15px;
         }
 
+        /* modal 背景 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        /* modal 內容框 */
+        .modal-content {
+            background-color: #fff7ef;
+            margin: 5% auto;
+            padding: 20px 30px;
+            width: 80%;
+            max-width: 800px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            float: right;
+            font-size: 30px;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #d17a22;
+        }
+
+        .modal-footer {
+            text-align: right;
+            margin-top: 15px;
+        }
+
         .search-box {
             display: flex;
             gap: 8px;
@@ -453,91 +500,93 @@ if (isset($_POST['add_store'])) {
             <input type="text" name="query_name" placeholder="查詢店名">
             <button type="submit" name="search_btn">查詢</button>
         </form>
+        <button type="button" onclick="openModal()">＋ 新增店家</button>
 
-        <!-- 新增學生 -->
-        <form method="POST" class="add-box" onsubmit="return validateHours();">
-            <!-- 第一行 -->
-            <div class="form-row">
-                <input type="text" name="username" placeholder="帳號" required>
-                <input type="password" name="password" placeholder="密碼" required>
-                <input type="password" name="confirm_password" placeholder="確認密碼" required>
-                <input type="text" name="phone" placeholder="電話" required pattern="(09\d{8}|0\d{1,3}-?\d{5,8})">
-                <input type="text" name="email" placeholder="電子郵件">
+        <!-- 店家新增 Modal -->
+        <div id="storeModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2>新增店家</h2>
+
+                <form method="POST" onsubmit="return validateHours();">
+                    <div class="form-row">
+                        <input type="text" name="username" placeholder="帳號" required>
+                        <input type="password" name="password" placeholder="密碼" required>
+                        <input type="password" name="confirm_password" placeholder="確認密碼" required>
+                        <input type="text" name="phone" placeholder="電話" required pattern="(09\d{8}|0\d{1,3}-?\d{5,8})">
+                        <input type="text" name="email" placeholder="電子郵件">
+
+                        <!-- 店家類型 select -->
+                        <?php
+                        $result = $link->query("SELECT storetype_id, name FROM storetype");
+                        if ($result->num_rows > 0) {
+                            echo '<select name="storetype" class="select-style" required>';
+                            echo '<option value="">店家類型</option>';
+                            while ($row = $result->fetch_assoc()) {
+                                echo '<option value="' . $row['storetype_id'] . '">' . htmlspecialchars($row['name']) . '</option>';
+                            }
+                            echo '</select>';
+                        }
+                        ?>
+
+                        <input type="text" name="name" placeholder="店名">
+                        <input type="text" name="description" placeholder="描述">
+                        <input type="text" name="address" placeholder="地址">
+                    </div>
+
+                    <div class="hours-container">
+                        <?php
+                        $days = ["1" => "星期一", "2" => "星期二", "3" => "星期三", "4" => "星期四", "5" => "星期五", "6" => "星期六", "7" => "星期日"];
+                        echo '<div class="hours-row">';
+                        foreach ([1, 3, 5, 7] as $w) {
+                            echo '<div class="hours-block"><strong>' . $days[$w] . ':</strong>
+                   <div id="ranges-' . $w . '"></div>
+                   <button type="button" class="add-btn" onclick="addRange(' . $w . ')">+新增時段</button>
+                  </div>';
+                        }
+                        echo '</div><div class="hours-row">';
+                        foreach ([2, 4, 6] as $w) {
+                            echo '<div class="hours-block"><strong>' . $days[$w] . ':</strong>
+                   <div id="ranges-' . $w . '"></div>
+                   <button type="button" class="add-btn" onclick="addRange(' . $w . ')">+新增時段</button>
+                  </div>';
+                        }
+                        echo '</div>';
+                        ?>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" name="add_store" class="btn-save">儲存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>帳號</th>
+                    <!-- <th>密碼</th> -->
+                    <th>店名</th>
+                    <th>描述</th>
+                    <th>地址</th>
+                    <th>電話</th>
+                    <th>電子郵件</th>
+                    <th>店家類型</th>
+                    <th>營業時間</th>
+                    <!-- <th>建立時間</th> -->
+                    <th>權限</th>
+                    <th>狀態</th>
+                    <th>停機原因</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
                 <?php
-                $result = $link->query("SELECT `storetype_id`, `name` FROM `storetype`");
-                if ($result->num_rows > 0) {
-                    echo '<select name="storetype" class="select-style" required>';
-                    echo '<option value="">店家類型</option>'; // 預設提示
-                    while ($row = $result->fetch_assoc()) {
-                        echo '<option value="' . $row['storetype_id'] . '">' . htmlspecialchars($row['name']) . '</option>';
-                    }
-                    echo '</select>';
-                }
-                ?>
-                <input type="text" name="name" placeholder="店名">
-                <input type="text" name="description" placeholder="描述">
-                <input type="text" name="address" placeholder="地址">
-            </div>
-
-            <!-- 第二行 -->
-            <div class="form-row">
-                <!-- 營業時間 -->
-                <div class="hours-container">
-                    <?php
-                    $days = ["1" => "星期一", "2" => "星期二", "3" => "星期三", "4" => "星期四", "5" => "星期五", "6" => "星期六", "7" => "星期日"];
-                    // 奇數天一行
-                    echo '<div class="hours-row">';
-                    foreach ([1, 3, 5, 7] as $w) {
-                        echo '<div class="hours-block">';
-                        echo '<strong>' . $days[$w] . ':</strong>';
-                        echo '<div id="ranges-' . $w . '"></div>';
-                        echo '<button type="button" class="add-btn" onclick="addRange(' . $w . ')">+新增時段</button>';
-                        echo '</div>';
-                    }
-                    echo '</div>';
-
-                    // 偶數天一行
-                    echo '<div class="hours-row">';
-                    foreach ([2, 4, 6] as $w) {
-                        echo '<div class="hours-block">';
-                        echo '<strong>' . $days[$w] . ':</strong>';
-                        echo '<div id="ranges-' . $w . '"></div>';
-                        echo '<button type="button" class="add-btn" onclick="addRange(' . $w . ')">+新增時段</button>';
-                        echo '</div>';
-                    }
-                    echo '</div>';
-                    ?>
-                </div>
-                <button type="submit" name="add_store">＋ 新增店家</button>
-            </div>
-        </form>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>帳號</th>
-                        <!-- <th>密碼</th> -->
-                        <th>店名</th>
-                        <th>描述</th>
-                        <th>地址</th>
-                        <th>電話</th>
-                        <th>電子郵件</th>
-                        <th>店家類型</th>
-                        <th>營業時間</th>
-                        <!-- <th>建立時間</th> -->
-                        <th>權限</th>
-                        <th>狀態</th>
-                        <th>停機原因</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    /* 先組合 SQL */
-                    if (isset($_POST['search_btn']) && !empty($_POST['query_name'])) {
-                        $query_name = $link->real_escape_string($_POST['query_name']);
-                        $sql = "SELECT a.account, b.name AS store_name, b.description, b.address, b.phone, b.email,
+                /* 先組合 SQL */
+                if (isset($_POST['search_btn']) && !empty($_POST['query_name'])) {
+                    $query_name = $link->real_escape_string($_POST['query_name']);
+                    $sql = "SELECT a.account, b.name AS store_name, b.description, b.address, b.phone, b.email,
                                     c.name AS type_name, d.weekday, d.open_time, d.close_time,
                                     a.created_time, a.role, a.permission, a.stop_reason
                                 FROM account AS a
@@ -546,8 +595,8 @@ if (isset($_POST['add_store'])) {
                                 LEFT JOIN storehours AS d ON a.account = d.account
                                 WHERE (a.role=1 OR a.role=3) AND b.name LIKE '%$query_name%'
                                 ORDER BY a.account, d.weekday";
-                    } else {
-                        $sql = "SELECT a.account, b.name AS store_name, b.description, b.address, b.phone, b.email,
+                } else {
+                    $sql = "SELECT a.account, b.name AS store_name, b.description, b.address, b.phone, b.email,
                                     c.name AS type_name, d.weekday, d.open_time, d.close_time,
                                     a.created_time, a.role, a.permission, a.stop_reason
                                 FROM account AS a
@@ -556,109 +605,108 @@ if (isset($_POST['add_store'])) {
                                 LEFT JOIN storehours AS d ON a.account = d.account
                                 WHERE a.role=1 OR a.role=3
                                 ORDER BY a.account, d.weekday";
+                }
+
+                /* 取資料 */
+                $result = $link->query($sql);
+
+                /* 依帳號整理成只一列 */
+                $stores = [];
+
+                while ($row = $result->fetch_assoc()) {
+                    $acc = $row['account'];
+
+                    if (!isset($stores[$acc])) {
+                        $stores[$acc] = $row;
+                        $stores[$acc]['hours'] = [];
                     }
 
-                    /* 取資料 */
-                    $result = $link->query($sql);
-
-                    /* 依帳號整理成只一列 */
-                    $stores = [];
-
-                    while ($row = $result->fetch_assoc()) {
-                        $acc = $row['account'];
-
-                        if (!isset($stores[$acc])) {
-                            $stores[$acc] = $row;
-                            $stores[$acc]['hours'] = [];
-                        }
-
-                        if (!empty($row['weekday'])) {
-                            $stores[$acc]['hours'][$row['weekday']] =
-                                $row['open_time'] . " ~ " . $row['close_time'];
-                        }
+                    if (!empty($row['weekday'])) {
+                        $stores[$acc]['hours'][$row['weekday']] =
+                            $row['open_time'] . " ~ " . $row['close_time'];
                     }
+                }
 
-                    /* 星期對照 */
-                    $weekMap = ['一', '二', '三', '四', '五', '六', '日'];
+                /* 星期對照 */
+                $weekMap = ['一', '二', '三', '四', '五', '六', '日'];
 
-                    /* 輸出表格 */
-                    if (empty($stores)) {
-                        echo "<tr><td colspan='14' style='text-align:center;color:#888'>無店家資料</td></tr>";
-                    } else {
-                        $i = 1;
+                /* 輸出表格 */
+                if (empty($stores)) {
+                    echo "<tr><td colspan='14' style='text-align:center;color:#888'>無店家資料</td></tr>";
+                } else {
+                    $i = 1;
 
-                        foreach ($stores as $row) {
-                    ?>
-                            <tr>
-                                <td style="text-align:center"><?= $i++ ?></td>
-                                <td><?= $row['account'] ?></td>
-                                <td><?= $row['store_name'] ?></td>
-                                <td><?= $row['description'] ?></td>
-                                <td><?= $row['address'] ?></td>
-                                <td><?= $row['phone'] ?></td>
-                                <td><?= $row['email'] ?></td>
-                                <td><?= $row['type_name'] ?></td>
+                    foreach ($stores as $row) {
+                ?>
+                        <tr>
+                            <td style="text-align:center"><?= $i++ ?></td>
+                            <td><?= $row['account'] ?></td>
+                            <td><?= $row['store_name'] ?></td>
+                            <td><?= $row['description'] ?></td>
+                            <td><?= $row['address'] ?></td>
+                            <td><?= $row['phone'] ?></td>
+                            <td><?= $row['email'] ?></td>
+                            <td><?= $row['type_name'] ?></td>
 
-                                <!-- 營業時間 -->
-                                <td style="text-align:center; vertical-align:middle;">
-                                    <?php
-                                    for ($w = 1; $w <= 7; $w++) {
-                                        if (isset($row['hours'][$w])) {
-                                            echo "星期" . $weekMap[$w - 1] . "<br> " . $row['hours'][$w] . "<br>";
-                                        } else {
-                                            // 未設定就留空
-                                            echo "<br>";
-                                        }
+                            <!-- 營業時間 -->
+                            <td style="text-align:center; vertical-align:middle;">
+                                <?php
+                                for ($w = 1; $w <= 7; $w++) {
+                                    if (isset($row['hours'][$w])) {
+                                        echo "星期" . $weekMap[$w - 1] . "<br> " . $row['hours'][$w] . "<br>";
+                                    } else {
+                                        // 未設定就留空
+                                        echo "<br>";
                                     }
-                                    ?>
-                                </td>
+                                }
+                                ?>
+                            </td>
 
-                                <!-- <td><?= $row['created_time'] ?></td> -->
+                            <!-- <td><?= $row['created_time'] ?></td> -->
 
-                                <td>
-                                    <form method="POST" class="status-form">
-                                        <select name="role" class="select-style" style="width: 150px;">
-                                            <option value="1" <?= ($row['role'] == 1 ? 'selected' : '') ?>>店家</option>
-                                            <option value="3" <?= ($row['role'] == 3 ? 'selected' : '') ?>>店家註冊審核中</option>
-                                        </select>
-                                </td>
-
-                                <td>
-                                    <select name="permission" class="select-style" style="width:80px;">
-                                        <option value="0" <?= ($row['permission'] == 0 ? 'selected' : '') ?>>啟用</option>
-                                        <option value="1" <?= ($row['permission'] == 1 ? 'selected' : '') ?>>停用</option>
+                            <td>
+                                <form method="POST" class="status-form">
+                                    <select name="role" class="select-style" style="width: 150px;">
+                                        <option value="1" <?= ($row['role'] == 1 ? 'selected' : '') ?>>店家</option>
+                                        <option value="3" <?= ($row['role'] == 3 ? 'selected' : '') ?>>店家註冊審核中</option>
                                     </select>
-                                </td>
+                            </td>
 
-                                <td><?= $row['stop_reason'] ?></td>
+                            <td>
+                                <select name="permission" class="select-style" style="width:80px;">
+                                    <option value="0" <?= ($row['permission'] == 0 ? 'selected' : '') ?>>啟用</option>
+                                    <option value="1" <?= ($row['permission'] == 1 ? 'selected' : '') ?>>停用</option>
+                                </select>
+                            </td>
 
-                                <td>
-                                    <div class="action-box">
-                                        <div class="btn-group">
-                                            <form method="POST">
-                                                <input type="hidden" name="account" value="<?= $row['account'] ?>">
-                                                <button type="submit" name="update" class="btn-edit">修改</button>
-                                            </form>
-                                        </div>
+                            <td><?= $row['stop_reason'] ?></td>
 
-                                        <hr class="divider"> <!-- 分隔線 -->
-
-                                        <div class="btn-group">
-                                            <button class="btn-order">歷史訂單</button>
-                                            <button class="btn-rate">評價</button>
-                                            <button class="btn-chart">圖表</button>
-                                            <button class="btn-log" onclick="window.location.href='<?= $logUrl ?>'">日誌</button>
-                                        </div>
+                            <td>
+                                <div class="action-box">
+                                    <div class="btn-group">
+                                        <form method="POST">
+                                            <input type="hidden" name="account" value="<?= $row['account'] ?>">
+                                            <button type="submit" name="update" class="btn-edit">修改</button>
+                                        </form>
                                     </div>
-                                </td>
-                            </tr>
-                    <?php
-                        }
+
+                                    <hr class="divider"> <!-- 分隔線 -->
+
+                                    <div class="btn-group">
+                                        <button class="btn-order">歷史訂單</button>
+                                        <button class="btn-rate">評價</button>
+                                        <button class="btn-chart">圖表</button>
+                                        <button class="btn-log" onclick="window.location.href='<?= $logUrl ?>'">日誌</button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                <?php
                     }
-                    ?>
-                </tbody>
-            </table>
-        </div>
+                }
+                ?>
+            </tbody>
+        </table>
     </div>
 </body>
 <script>
@@ -698,6 +746,22 @@ if (isset($_POST['add_store'])) {
         <button type="button" class="del-btn" onclick="this.parentElement.remove()">-刪除</button>
     `;
         container.appendChild(div);
+    }
+
+    function openModal() {
+        document.getElementById("storeModal").style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById("storeModal").style.display = "none";
+    }
+
+    // 點擊外部關閉
+    window.onclick = function(event) {
+        const modal = document.getElementById("storeModal");
+        if (event.target === modal) {
+            closeModal();
+        }
     }
 </script>
 

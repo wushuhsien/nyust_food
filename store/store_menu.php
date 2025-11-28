@@ -96,7 +96,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
         }
 
         .dropdown-content input[type="button"]:hover {
-            background-color: #f2c79e;
+            background-color: #d17a22;
             color: white;
         }
 

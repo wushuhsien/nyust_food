@@ -7,7 +7,7 @@ include "../db.php";  // 引入資料庫連線
 
 <head>
     <meta charset="UTF-8">
-    <title>管理員後台</title>
+    <title>管理員首頁</title>
     <style>
         /* 新增店家帳號待審核容器 */
         .announcement-box {
@@ -79,7 +79,7 @@ include "../db.php";  // 引入資料庫連線
             <?php
             $sql = "SELECT `description`   
                 FROM `report`
-                WHERE `type`='系統問題' AND `status`='待處理'";
+                WHERE `type`='系統問題' AND `status`='未處理'";
             $result = $link->query($sql);
 
             if ($result && $result->num_rows > 0) {

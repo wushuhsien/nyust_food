@@ -88,7 +88,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
 <body>
     <div class="top-menu">
-        <h1 style="cursor:pointer;" onclick="window.location.href='admin.php'">管理員後台</h1>
+        <h1 style="cursor:pointer;" onclick="window.location.href='admin.php'">管理員首頁</h1>
 
         <div class="menu-items">
 
