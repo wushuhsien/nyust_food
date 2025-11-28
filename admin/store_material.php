@@ -7,9 +7,16 @@ if (isset($_POST['update'])) {
     $account = $_POST['account'];
     $role = $_POST['role'];
     $permission = $_POST['permission'];
+    $stop_reason = trim($_POST['stop_reason'] ?? '');
 
-    $stmt = $link->prepare("UPDATE `account` SET `role`=? , `permission`=? WHERE `account`=?");
-    $stmt->bind_param("iis", $role, $permission, $account);
+    if ($permission == 1 && $stop_reason !== "") {
+        $stmt = $link->prepare("UPDATE `account` SET `role`=?, `permission`=?, `stop_reason`=? WHERE `account`=?");
+        $stmt->bind_param("iiss", $role, $permission, $stop_reason, $account);
+    } else {
+        $stmt = $link->prepare("UPDATE `account` SET `role`=?, `permission`=?, `stop_reason`=NULL WHERE `account`=?");
+        $stmt->bind_param("iis", $role, $permission, $account);
+    }
+
     if ($stmt->execute()) {
         echo "<script>alert('帳號 $account 狀態修改成功'); window.location='store_material.php';</script>";
         exit;
@@ -18,6 +25,7 @@ if (isset($_POST['update'])) {
         exit;
     }
 }
+
 
 if (isset($_POST['add_store'])) {
     $username = trim($_POST['username']);
@@ -343,21 +351,21 @@ if (isset($_POST['add_store'])) {
             margin-bottom: 15px;
         }
 
-        .modal {
+        .storemodal {
             display: none;
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.4);
             z-index: 100;
             overflow: hidden;
-            /* 背景不捲動，只讓 modal-content 捲 */
+            /* 背景不捲動，只讓 storemodal-content 捲 */
         }
 
-        /* modal 內容框（加入垂直滾輪 & 視窗位置優化） */
-        .modal-content {
+        /* storemodal 內容框（加入垂直滾輪 & 視窗位置優化） */
+        .storemodal-content {
             background-color: #fff7ef;
             margin: 6vh auto;
-            /* 讓 modal 置中但更靠上，增加可滾動區域 */
+            /* 讓 storemodal 置中但更靠上，增加可滾動區域 */
             padding: 20px 30px;
             width: 80%;
             max-width: 1000px;
@@ -370,26 +378,82 @@ if (isset($_POST['add_store'])) {
         }
 
         /* ✅ 讓滾輪符合你的棕色主題、但不花 */
-        .modal-content::-webkit-scrollbar {
+        .storemodal-content::-webkit-scrollbar {
             width: 8px;
         }
 
-        .modal-content::-webkit-scrollbar-track {
+        .storemodal-content::-webkit-scrollbar-track {
             background: var(--light-brown);
             border-radius: 10px;
         }
 
-        .modal-content::-webkit-scrollbar-thumb {
+        .storemodal-content::-webkit-scrollbar-thumb {
             background: var(--mid-brown);
             border-radius: 10px;
         }
 
-        .modal-content::-webkit-scrollbar-thumb:hover {
+        .storemodal-content::-webkit-scrollbar-thumb:hover {
             background: var(--dark-brown);
         }
 
-        /* Modal 標題樣式 */
-        .modal-content h2 {
+        /* storeModal 標題樣式 */
+        .storemodal-content h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--brown-dark);
+            margin-bottom: 18px;
+            border-left: 5px solid var(--brown);
+            padding-left: 10px;
+        }
+
+        .checkmodal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            overflow: hidden;
+            /* 背景不捲動，只讓 checkmodal-content 捲 */
+        }
+
+        .checkmodal-content {
+            background-color: #fefaf4;
+            /* 溫暖乳白棕（比純白有質感、好閱讀） */
+            margin: 20vh auto;
+            /* 再稍微下移一點，更自然置中 */
+            padding: 24px 30px;
+            width: 90%;
+            max-width: 1000px;
+            border-radius: 14px;
+            box-shadow: 0 6px 18px rgba(92, 61, 46, 0.22);
+            /* 微棕陰影，更符合主題 */
+            max-height: 76vh;
+            overflow-y: auto;
+            color: var(--text-dark);
+        }
+
+
+        /* ✅ 讓滾輪符合你的棕色主題、但不花 */
+        .checkmodal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .checkmodal-content::-webkit-scrollbar-track {
+            background: var(--light-brown);
+            border-radius: 10px;
+        }
+
+        .checkmodal-content::-webkit-scrollbar-thumb {
+            background: var(--mid-brown);
+            border-radius: 10px;
+        }
+
+        .checkmodal-content::-webkit-scrollbar-thumb:hover {
+            background: var(--dark-brown);
+        }
+
+        /* storeModal 標題樣式 */
+        .checkmodal-content h2 {
             font-size: 22px;
             font-weight: 600;
             color: var(--brown-dark);
@@ -548,7 +612,12 @@ if (isset($_POST['add_store'])) {
         }
 
         /* FOOTER ---------------------------------- */
-        .modal-footer {
+        .storemodal-footer {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .checkmodal-footer {
             text-align: right;
             margin-top: 20px;
         }
@@ -662,8 +731,8 @@ if (isset($_POST['add_store'])) {
         </div>
 
         <!-- 店家新增 Modal -->
-        <div id="storeModal" class="modal">
-            <div class="modal-content">
+        <div id="storeModal" class="storemodal">
+            <div class="storemodal-content">
                 <span class="close" onclick="closeModal()">&times;</span>
                 <h2>新增店家</h2>
 
@@ -714,7 +783,7 @@ if (isset($_POST['add_store'])) {
                         ?>
                     </div>
 
-                    <div class="modal-footer">
+                    <div class="storemodal-footer">
                         <button type="submit" name="add_store" class="btn-save">儲存</button>
                     </div>
                 </form>
@@ -727,12 +796,12 @@ if (isset($_POST['add_store'])) {
                     <th>帳號</th>
                     <!-- <th>密碼</th> -->
                     <th>店名</th>
-                    <th>描述</th>
+                    <!-- <th>描述</th>
                     <th>地址</th>
                     <th>電話</th>
-                    <th>電子郵件</th>
+                    <th>電子郵件</th> -->
                     <th>店家類型</th>
-                    <th>營業時間</th>
+                    <!-- <th>營業時間</th> -->
                     <!-- <th>建立時間</th> -->
                     <th>權限</th>
                     <th>狀態</th>
@@ -778,6 +847,7 @@ if (isset($_POST['add_store'])) {
                     if (!isset($stores[$acc])) {
                         $stores[$acc] = $row;
                         $stores[$acc]['hours'] = [];
+                        $stores[$acc]['logUrl'] = "accountaction.php?account=" . urlencode($acc); //存入 URL
                     }
 
                     if (!empty($row['weekday'])) {
@@ -801,14 +871,14 @@ if (isset($_POST['add_store'])) {
                             <td style="text-align:center"><?= $i++ ?></td>
                             <td><?= $row['account'] ?></td>
                             <td><?= $row['store_name'] ?></td>
-                            <td><?= $row['description'] ?></td>
+                            <!-- <td><?= $row['description'] ?></td>
                             <td><?= $row['address'] ?></td>
                             <td><?= $row['phone'] ?></td>
-                            <td><?= $row['email'] ?></td>
+                            <td><?= $row['email'] ?></td> -->
                             <td><?= $row['type_name'] ?></td>
 
                             <!-- 營業時間 -->
-                            <td style="text-align:center; vertical-align:middle;">
+                            <!-- <td style="text-align:center; vertical-align:middle;">
                                 <?php
                                 for ($w = 1; $w <= 7; $w++) {
                                     if (isset($row['hours'][$w])) {
@@ -819,23 +889,26 @@ if (isset($_POST['add_store'])) {
                                     }
                                 }
                                 ?>
-                            </td>
+                            </td> -->
 
                             <!-- <td><?= $row['created_time'] ?></td> -->
 
                             <td>
-                                <form method="POST" class="status-form">
-                                    <select name="role" class="select-style" style="width: 150px;">
-                                        <option value="1" <?= ($row['role'] == 1 ? 'selected' : '') ?>>店家</option>
-                                        <option value="3" <?= ($row['role'] == 3 ? 'selected' : '') ?>>店家註冊審核中</option>
-                                    </select>
+                                <select name="role" class="select-style" style="width: 150px;">
+                                    <option value="1" <?= ($row['role'] == 1 ? 'selected' : '') ?>>店家</option>
+                                    <option value="3" <?= ($row['role'] == 3 ? 'selected' : '') ?>>店家註冊審核中</option>
+                                </select>
                             </td>
 
                             <td>
-                                <select name="permission" class="select-style" style="width:80px;">
+                                <select name="permission" class="select-style perm-select" style="width: 150px;" data-account="<?= $row['account'] ?>" id="perm_<?= $row['account'] ?>">
                                     <option value="0" <?= ($row['permission'] == 0 ? 'selected' : '') ?>>啟用</option>
                                     <option value="1" <?= ($row['permission'] == 1 ? 'selected' : '') ?>>停用</option>
                                 </select>
+
+                                <!-- <input type="hidden" name="stop_reason" id="stop_input_<?= $row['account'] ?>"
+                                    value="<?= htmlspecialchars($row['stop_reason']) ?>"
+                                    data-current="<?= $row['permission'] ?>"> -->
                             </td>
 
                             <td><?= $row['stop_reason'] ?></td>
@@ -843,21 +916,46 @@ if (isset($_POST['add_store'])) {
                             <td>
                                 <div class="action-box">
                                     <div class="btn-group">
-                                        <form method="POST">
+                                        <form method="POST" onsubmit="return submitPermissionForm('<?= $row['account'] ?>')">
                                             <input type="hidden" name="account" value="<?= $row['account'] ?>">
+                                            <input type="hidden" name="role" id="role_input_<?= $row['account'] ?>" value="<?= $row['role'] ?>">
+                                            <input type="hidden" name="permission" id="perm_input_<?= $row['account'] ?>" value="<?= $row['permission'] ?>">
+                                            <input type="hidden" name="stop_reason" id="stop_input_<?= $row['account'] ?>" value="<?= htmlspecialchars($row['stop_reason']) ?>" data-current="<?= $row['permission'] ?>">
                                             <button type="submit" name="update" class="btn-edit">修改</button>
-                                            <button type="submit" name="check" class="btn-see">查看詳細</button>
+                                        </form>
+
+                                        <form method="POST">
+                                            <button type="button"
+                                                class="btn-see"
+                                                onclick='opencheckModal({
+                                                                        no: "<?= $i - 1 ?>",
+                                                                        account: "<?= $row["account"] ?>",
+                                                                        store: "<?= addslashes($row["store_name"]) ?>",
+                                                                        description: "<?= addslashes($row["description"]) ?>",
+                                                                        address: "<?= addslashes($row["address"]) ?>",
+                                                                        phone: "<?= $row["phone"] ?>",
+                                                                        email: "<?= $row["email"] ?>",
+                                                                        type: "<?= addslashes($row["type_name"]) ?>",
+                                                                        created: "<?= $row["created_time"] ?>",
+                                                                        permission: <?= $row["permission"] ?>,
+                                                                        role: <?= $row["role"] ?>,
+                                                                        stopReason: "<?= addslashes($row["stop_reason"]) ?>",
+                                                                        hours: <?= json_encode($row["hours"], JSON_UNESCAPED_UNICODE) ?>
+                                                                    })'>
+                                                查看詳細
+                                            </button>
+
                                         </form>
                                     </div>
+                                </div>
 
-                                    <hr class="divider"> <!-- 分隔線 -->
+                                <hr class="divider"> <!-- 分隔線 -->
 
-                                    <div class="btn-group">
-                                        <button class="btn-order">歷史訂單</button>
-                                        <button class="btn-rate">評價</button>
-                                        <button class="btn-chart">圖表</button>
-                                        <button class="btn-log" onclick="window.location.href='<?= $logUrl ?>'">日誌</button>
-                                    </div>
+                                <div class="btn-group">
+                                    <button class="btn-order">歷史訂單</button>
+                                    <button class="btn-rate">評價</button>
+                                    <button class="btn-chart">圖表</button>
+                                    <button type="button" class="btn-log" onclick="window.location.href='<?= $row['logUrl'] ?>'">日誌</button>
                                 </div>
                             </td>
                         </tr>
@@ -868,8 +966,86 @@ if (isset($_POST['add_store'])) {
             </tbody>
         </table>
     </div>
+
+    <!-- ===== 查看詳細 Modal ===== -->
+    <div id="checkModal" class="checkmodal" style="display:none">
+        <div class="checkmodal-content">
+            <span class="close" onclick="closecheckModal()">&times;</span>
+
+            <!-- 你要的那一行標題 -->
+            <h3 id="checkTitle" style="margin-bottom:14px;color:var(--dark-brown);font-weight:600"></h3>
+
+            <!-- 下方顯示你指定欄位 -->
+            <table style="width:100%;border:1px solid var(--border);border-radius:10px;border-collapse:collapse;">
+                <thead>
+                    <tr style="background:var(--main-brown);color:#fff;">
+                        <th>描述</th>
+                        <th>地址</th>
+                        <th>電話</th>
+                        <th>電子郵件</th>
+                        <th>店家類型</th>
+                        <th>營業時間</th>
+                        <th>建立時間</th>
+                        <th>權限</th>
+                        <th>狀態</th>
+                        <th>停機原因</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="cDesc"></td>
+                        <td id="cAddr"></td>
+                        <td id="cPhone"></td>
+                        <td id="cEmail"></td>
+                        <td id="cType"></td>
+                        <td id="cHours"></td>
+                        <td id="cCreated"></td>
+                        <td id="cPermission"></td>
+                        <td id="cRole"></td>
+                        <td id="cReason"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </body>
 <script>
+    function submitPermissionForm(account) {
+        const permSelect = document.getElementById("perm_" + account);
+        const stopInput = document.getElementById("stop_input_" + account);
+        const roleSelect = document.querySelector(`select[name="role"][data-account="${account}"]`);
+        const roleInput = document.getElementById("role_input_" + account);
+        const permInput = document.getElementById("perm_input_" + account);
+
+        // 同步值到 hidden input
+        roleInput.value = roleSelect.value;
+        permInput.value = permSelect.value;
+
+        // 只有從非停用變成停用才要求輸入原因
+        const currentPermission = stopInput.dataset.current || "0";
+
+        if (permSelect.value === "1" && currentPermission !== "1") {
+            let reason = prompt("請輸入停用原因：");
+            if (!reason || reason.trim() === "") {
+                alert("必須填寫停用原因！");
+                return false; // 阻止送出
+            }
+            stopInput.value = reason.trim(); // ✅ 這裡一定要改 hidden input 的 value
+        } else if (permSelect.value !== "1") {
+            stopInput.value = ""; // 啟用就清空
+        }
+
+        return true; // 允許送出
+    }
+
+
+    // 將 role select 加上 data-account 屬性，方便 JS 讀取
+    document.querySelectorAll('select[name="role"]').forEach(sel => {
+        const tr = sel.closest('tr');
+        sel.dataset.account = tr.querySelector('td:nth-child(2)').innerText;
+    });
+
     function validateHours() {
         const days = [1, 2, 3, 4, 5, 6, 7];
         let hasTime = false;
@@ -922,6 +1098,57 @@ if (isset($_POST['add_store'])) {
         if (event.target === modal) {
             closeModal();
         }
+    }
+
+    function opencheckModal(data) {
+        document.getElementById("checkModal").style.display = "block";
+
+        // 第一行標題
+        document.getElementById("checkTitle").innerHTML =
+            `#${data.no}　帳號: ${data.account}　店家名稱: ${data.store}`;
+
+        // 文字欄位
+        document.getElementById("cDesc").innerText = data.description;
+        document.getElementById("cAddr").innerText = data.address;
+        document.getElementById("cPhone").innerText = data.phone;
+        document.getElementById("cEmail").innerText = data.email;
+        document.getElementById("cType").innerText = data.type;
+        document.getElementById("cCreated").innerText = data.created;
+
+        // 0/1 轉中文
+        document.getElementById("cPermission").innerText = (data.permission == 0 ? "啟用" : "停用");
+        document.getElementById("cRole").innerText = (data.role == 1 ? "店家" : "店家註冊審核中");
+
+        // 停機原因
+        document.getElementById("cReason").innerText = data.stopReason || "無";
+
+        // 權限
+        document.getElementById("cPermission").innerText = (data.permission == 0 ? "啟用" : "停用");
+
+        // 營業時間整理
+        let hoursText = "";
+        const weekName = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+        for (let w = 1; w <= 7; w++) {
+            if (data.hours[w]) {
+                hoursText += `${weekName[w-1]}<br>${data.hours[w]}<br><br>`;
+            }
+        }
+
+        document.getElementById("cHours").innerHTML = hoursText || "未設定";
+    }
+
+    function closecheckModal() {
+        document.getElementById("checkModal").style.display = "none";
+    }
+
+    // 背景點擊關閉
+    window.addEventListener("click", e => {
+        if (e.target.id === "checkModal") closecheckModal();
+    });
+
+
+    function closecheckModal() {
+        document.getElementById("checkModal").style.display = "none";
     }
 </script>
 
