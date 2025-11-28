@@ -73,14 +73,22 @@ if (isset($_POST['add_student'])) {
 
     <style>
         :root {
-            --main-green: #4caf50;
-            --dark-green: #388e3c;
+            --green: #3d9462;
+            --green-dark: #2b6b47;
+            --brown: #c19a6b;
+            --brown-dark: #5c3d2e;
+            --bg-light: #faf7f2;
+            --border: #e0dcd6;
+            --text-dark: #3d3d3d;
+            --main-green: #3d9462;
+            --dark-green: #2b6b47;
             --main-brown: #C19A6B;
             --dark-brown: #5C3D2E;
-            --blue: #1e88e5;
-            --purple: #8e24aa;
-            --orange: #fb8c00;
-            --gray: #6c757d;
+            --yellow: #c18f2c;
+            --blue: #2f7dd2;
+            --purple: #9b6fb5;
+            --orange: #d97a2b;
+            --gray: #6e7073;
         }
 
         .container {
@@ -240,16 +248,19 @@ if (isset($_POST['add_student'])) {
         }
 
         .search-box button {
-            padding: 8px 14px;
-            background: var(--blue);
-            color: white;
+            padding: 10px 16px;
             border: none;
             border-radius: 8px;
+            background: var(--main-brown);
+            color: var(--dark-brown);
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
         }
 
         .search-box button:hover {
             opacity: 0.85;
+            transform: scale(1.05);
         }
     </style>
 

@@ -93,14 +93,22 @@ if (isset($_POST['add_store'])) {
 
     <style>
         :root {
-            --main-green: #4caf50;
-            --dark-green: #388e3c;
+            --green: #3d9462;
+            --green-dark: #2b6b47;
+            --brown: #c19a6b;
+            --brown-dark: #5c3d2e;
+            --bg-light: #faf7f2;
+            --border: #e0dcd6;
+            --text-dark: #3d3d3d;
+            --main-green: #3d9462;
+            --dark-green: #2b6b47;
             --main-brown: #C19A6B;
             --dark-brown: #5C3D2E;
-            --blue: #1e88e5;
-            --purple: #8e24aa;
-            --orange: #fb8c00;
-            --gray: #6c757d;
+            --yellow: #c18f2c;
+            --blue: #2f7dd2;
+            --purple: #9b6fb5;
+            --orange: #d97a2b;
+            --gray: #6e7073;
         }
 
         .container {
@@ -221,81 +229,6 @@ if (isset($_POST['add_store'])) {
             transform: scale(1.02);
         }
 
-        /* 營業時間容器 */
-        .hours-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            /* 兩行間距 */
-        }
-
-        .hours-row {
-            display: flex;
-            gap: 80px;
-            /* 每個區塊間距 */
-        }
-
-        .hours-block {
-            display: flex;
-            flex-direction: column;
-            width: 300px;
-            box-sizing: border-box;
-        }
-
-        .hours-block input[type="time"] {
-            width: 125px;
-        }
-
-        .hours-block button {
-            width: 80px;
-        }
-
-        .hours-block .add-btn {
-            font-size: 12px;
-            padding: 3px 6px;
-            cursor: pointer;
-            border: none;
-            border-radius: 4px;
-            background: #66B3FF;
-            color: white;
-        }
-
-        .hours-block .del-btn {
-            font-size: 12px;
-            padding: 3px 6px;
-            cursor: pointer;
-            border: none;
-            border-radius: 4px;
-            background: #ff6b6b;
-            color: white;
-        }
-
-        /* +新增時段 hover 保持 66B3FF */
-        .hours-block .add-btn:hover {
-            background: #66B3FF;
-            /* 不變 */
-        }
-
-        /* -刪除 hover 改用 f90000ff */
-        .hours-block .del-btn:hover {
-            background: #f90000ff;
-        }
-
-        .hours-block .time-range {
-            display: flex;
-            align-items: center;
-            /* 垂直置中 */
-            gap: 5px;
-            /* 元素間距 */
-            margin-top: 5px;
-            /* 每個時段間距 */
-        }
-
-        .hours-block .time-range button.del-btn {
-            flex-shrink: 0;
-            /* 按鈕不縮小 */
-        }
-
         /* 表格 */
         table {
             width: 100%;
@@ -384,6 +317,10 @@ if (isset($_POST['add_store'])) {
             background: var(--main-green);
         }
 
+        .btn-see {
+            background: var(--yellow);
+        }
+
         .btn-log {
             background: var(--gray);
         }
@@ -406,44 +343,231 @@ if (isset($_POST['add_store'])) {
             margin-bottom: 15px;
         }
 
-        /* modal 背景 */
         .modal {
             display: none;
             position: fixed;
-            z-index: 10;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            overflow: hidden;
+            /* 背景不捲動，只讓 modal-content 捲 */
         }
 
-        /* modal 內容框 */
+        /* modal 內容框（加入垂直滾輪 & 視窗位置優化） */
         .modal-content {
             background-color: #fff7ef;
-            margin: 5% auto;
+            margin: 6vh auto;
+            /* 讓 modal 置中但更靠上，增加可滾動區域 */
             padding: 20px 30px;
             width: 80%;
-            max-width: 800px;
+            max-width: 1000px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             max-height: 80vh;
-            overflow-y: auto;
+            /* 視窗最大高度 80% */
+            overflow-y: auto !important;
+            /* ✅ 強制啟用垂直滾輪 */
+        }
+
+        /* ✅ 讓滾輪符合你的棕色主題、但不花 */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: var(--light-brown);
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: var(--mid-brown);
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: var(--dark-brown);
+        }
+
+        /* Modal 標題樣式 */
+        .modal-content h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--brown-dark);
+            margin-bottom: 18px;
+            border-left: 5px solid var(--brown);
+            padding-left: 10px;
+        }
+
+        /* 輸入區塊網格 */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px 14px;
+            margin-bottom: 20px;
+        }
+
+        /* Input & Select 統一外觀 */
+        .form-row input,
+        .form-row select {
+            width: 80%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--main-brown);
+            font-size: 14px;
+            background: #fff;
+            color: var(--deep-brown);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-row input:focus,
+        .form-row select:focus {
+            outline: 2px solid var(--dark-brown);
+            border-color: var(--dark-brown);
         }
 
         .close {
             float: right;
-            font-size: 30px;
+            font-size: 28px;
             cursor: pointer;
+            color: #666;
         }
 
         .close:hover {
-            color: #d17a22;
+            color: #ca5b2d;
         }
 
+        /* FORM ---------------------------------- */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px 18px;
+            margin-bottom: 20px;
+        }
+
+
+        .form-grid input,
+        .form-grid select {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            background: #fff;
+            color: var(--text-dark);
+            transition: 0.15s;
+        }
+
+
+        .form-grid input:focus,
+        .form-grid select:focus {
+            border-color: var(--brown);
+            box-shadow: 0 0 4px rgba(193, 154, 107, 0.35);
+        }
+
+        /* HOURS BLOCK ----------------------------- */
+        .hours-section {
+            background: var(--bg-light);
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+
+        .hours-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .hours-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .hours-block {
+            flex: 1;
+            /* 🟢 每個區塊等寬 */
+            min-width: 220px;
+            /* 避免太窄 */
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .hours-block strong {
+            color: var(--brown-dark);
+        }
+
+
+        .time-range {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+
+        .time-range input[type="time"] {
+            padding: 1px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+
+        .add-btn {
+            margin-top: 6px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: var(--brown);
+            color: white;
+            font-size: 13px;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+
+        .add-btn:hover {
+            background: var(--brown-dark);
+        }
+
+
+        .del-btn {
+            background: #ff6b6b;
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+
+        .del-btn:hover {
+            background: #e60000;
+        }
+
+        /* FOOTER ---------------------------------- */
         .modal-footer {
             text-align: right;
-            margin-top: 15px;
+            margin-top: 20px;
+        }
+
+
+        .btn-save {
+            background: var(--green);
+            padding: 10px 16px;
+            color: white;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+
+        .btn-save:hover {
+            background: var(--green-dark);
         }
 
         .search-box {
@@ -471,6 +595,39 @@ if (isset($_POST['add_store'])) {
             opacity: 0.85;
         }
 
+        .search-row {
+            display: flex;
+            justify-content: flex-end;
+            /* ✅ 讓內容全部靠右 */
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .search-row input {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--main-brown);
+            font-size: 14px;
+            width: 180px;
+        }
+
+        .search-row button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            background: var(--main-brown);
+            color: var(--dark-brown);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .search-row button:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
+        }
+
         /* 日誌按鈕 */
         .btn-log {
             background: var(--gray);
@@ -496,11 +653,13 @@ if (isset($_POST['add_store'])) {
     <div class="container">
         <h2>店家資料管理</h2>
         <!--查詢-->
-        <form method="POST" class="search-box">
-            <input type="text" name="query_name" placeholder="查詢店名">
-            <button type="submit" name="search_btn">查詢</button>
-        </form>
-        <button type="button" onclick="openModal()">＋ 新增店家</button>
+        <div class="search-row">
+            <form method="POST" class="search-box">
+                <input type="text" name="query_name" placeholder="查詢店名">
+                <button type="submit" name="search_btn">查詢</button>
+            </form>
+            <button type="button" onclick="openModal()">＋ 新增店家</button>
+        </div>
 
         <!-- 店家新增 Modal -->
         <div id="storeModal" class="modal">
@@ -538,14 +697,14 @@ if (isset($_POST['add_store'])) {
                         <?php
                         $days = ["1" => "星期一", "2" => "星期二", "3" => "星期三", "4" => "星期四", "5" => "星期五", "6" => "星期六", "7" => "星期日"];
                         echo '<div class="hours-row">';
-                        foreach ([1, 3, 5, 7] as $w) {
+                        foreach ([1, 2, 3, 4] as $w) {
                             echo '<div class="hours-block"><strong>' . $days[$w] . ':</strong>
                    <div id="ranges-' . $w . '"></div>
                    <button type="button" class="add-btn" onclick="addRange(' . $w . ')">+新增時段</button>
                   </div>';
                         }
                         echo '</div><div class="hours-row">';
-                        foreach ([2, 4, 6] as $w) {
+                        foreach ([5, 6, 7] as $w) {
                             echo '<div class="hours-block"><strong>' . $days[$w] . ':</strong>
                    <div id="ranges-' . $w . '"></div>
                    <button type="button" class="add-btn" onclick="addRange(' . $w . ')">+新增時段</button>
@@ -687,6 +846,7 @@ if (isset($_POST['add_store'])) {
                                         <form method="POST">
                                             <input type="hidden" name="account" value="<?= $row['account'] ?>">
                                             <button type="submit" name="update" class="btn-edit">修改</button>
+                                            <button type="submit" name="check" class="btn-see">查看詳細</button>
                                         </form>
                                     </div>
 
