@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "db.php";
+include "../db.php";
 
 // 若表單送出 → 新增資料
 if ($_SERVER["REQUEST_METHOD"] === "POST") {

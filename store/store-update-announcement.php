@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "db.php";
+include "../db.php";
 
 if (!isset($_GET['id'])) {
     echo "<script>alert('無公告 ID'); location.href='admin-announcement.php';</script>";
