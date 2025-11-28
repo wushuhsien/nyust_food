@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "db.php";
+include "../db.php";
 
 $loginAccount = $_SESSION['user'] ?? ''; // 目前登入帳號
 
