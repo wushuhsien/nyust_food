@@ -4,8 +4,8 @@
         "user_account": "stu002",
         "description": "系統延遲太久",
         "images": [
-            "..\/picture\/report\/admin\/20250511_stu002_1.png",
-            "..\/picture\/report\/admin\/20250511_stu002_2.webp"
+            "..\/picture\/report\/admin\/20250511_stu002_01.png",
+            "..\/picture\/report\/admin\/20250511_stu002_02.webp"
         ],
         "time": "2025-05-11 14:00:00",
         "status": "處理中"
@@ -15,21 +15,20 @@
         "user_account": "stu001",
         "description": "當機跑不動",
         "images": [
-            "..\/picture\/report\/admin\/20251122_stu001_1.png"
+            "..\/picture\/report\/admin\/20251122_stu001_01.png"
         ],
         "time": "2025-11-22 04:14:18",
-        "status": "處理中"
+        "status": "未處理"
     },
     {
         "report_id": 3,
         "user_account": "stu004",
         "description": "404錯誤",
         "images": [
-            "..\/picture\/report\/admin\/20251201_stu004_1.jpg",
-            "..\/picture\/report\/admin\/20251201_stu004_2.jpg"
+            "..\/picture\/report\/admin\/20251201_stu004_01.jpg",
+            "..\/picture\/report\/admin\/20251201_stu004_02.jpg"
         ],
-        "time": "2025-12-01 09:00:00",
-        "store_account": "store003",
+        "time": "2025-11-25 09:00:00",
         "status": "處理中"
     },
     {
@@ -38,6 +37,17 @@
         "description": "bug",
         "images": [],
         "time": "2025-12-01 09:00:00",
-        "status": "處理中"
+        "status": "已完成"
+    },
+    {
+        "report_id": 5,
+        "user_account": "stu004",
+        "description": "99999",
+        "images": [
+            "..\/picture\/report\/admin\/20251128_stu004_01.png",
+            "..\/picture\/report\/admin\/20251128_stu004_01.jpg"
+        ],
+        "time": "2025-11-28 08:41:22",
+        "status": "未處理"
     }
 ]

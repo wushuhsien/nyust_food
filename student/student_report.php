@@ -16,6 +16,71 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
 // 讀取 系統問題 admin_report.json
 $jsonPath1 = "../JSON/admin_report.json";
 $jsonData1 = json_decode(file_get_contents($jsonPath1), true);
+
+//上傳圖片+新增系統問題
+if (isset($_POST['add_report'])) {
+    $description = trim($_POST['description']);
+
+    // 設定時區為台北
+    date_default_timezone_set('Asia/Taipei');
+    $time = date("Y-m-d H:i:s"); // PHP 時間
+
+    $date = date('Ymd'); // 當天日期格式
+
+    // 1. 上傳圖片
+    $uploadDir = "../picture/report/admin/"; // 存檔資料夾
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+    $savedFiles = [];
+    if (!empty($_FILES['images']['name'][0])) {
+        $count = 1;
+        foreach ($_FILES['images']['tmp_name'] as $index => $tmpName) {
+            $ext = pathinfo($_FILES['images']['name'][$index], PATHINFO_EXTENSION);
+            $newName = sprintf("%s_%s_%02d.%s", $date, $account, $count, $ext);
+            $destination = $uploadDir . $newName;
+
+            if (move_uploaded_file($tmpName, $destination)) {
+                $savedFiles[] = "../picture/report/admin/" . $newName; // 使用正常斜線
+            } else {
+                error_log("上傳檔案失敗: " . $_FILES['images']['name'][$index]);
+            }
+        }
+    }
+
+    // 2. 新增資料到資料庫
+    $link->begin_transaction();
+    $stmt = $link->prepare("INSERT INTO `report`(`description`, `time`, `type`, `status`, `account_student`, `account_store`) VALUES (?, CURRENT_TIMESTAMP(), '系統問題', '未處理', ?, NULL)");
+    $stmt->bind_param("ss", $description, $account);
+
+    if ($stmt->execute()) {
+        $link->commit();
+    } else {
+        $link->rollback();
+        echo "<script>alert('新增失敗: " . $stmt->error . "'); history.back();</script>";
+        exit;
+    }
+
+    // 3. 新增資料到 JSON
+    $jsonPath = "../JSON/admin_report.json";
+    $jsonData = file_exists($jsonPath) ? json_decode(file_get_contents($jsonPath), true) : [];
+
+    $nextId = !empty($jsonData) ? max(array_column($jsonData, 'report_id')) + 1 : 1;
+
+    $jsonData[] = [
+        'report_id' => $nextId,
+        'user_account' => $account,
+        'description' => $description,
+        'images' => $savedFiles,   // 確認 $savedFiles 有值
+        'time' => $time,
+        'status' => '未處理'
+    ];
+
+    file_put_contents($jsonPath, json_encode($jsonData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+
+    echo "<script>alert('新增系統問題成功！');window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -24,6 +89,17 @@ $jsonData1 = json_decode(file_get_contents($jsonPath1), true);
     <meta charset="UTF-8">
     <title>問題歷史紀錄</title>
     <style>
+        :root {
+            --main-green: #4caf50;
+            --dark-green: #388e3c;
+            --main-brown: #C19A6B;
+            --dark-brown: #5C3D2E;
+            --blue: #1e88e5;
+            --purple: #8e24aa;
+            --orange: #fb8c00;
+            --gray: #6c757d;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -45,6 +121,42 @@ $jsonData1 = json_decode(file_get_contents($jsonPath1), true);
             margin-bottom: 25px;
             color: #333;
             font-size: 26px;
+        }
+
+        .add-box {
+            display: flex;
+            gap: 20px;
+            padding: 12px;
+            background: #fafafa;
+            border-radius: 12px;
+            margin-bottom: 18px;
+
+        }
+
+        .add-box input {
+            width: 200px;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .add-box button {
+            width: 100px;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            background: var(--main-brown);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .add-box button:hover {
+            background: var(--dark-brown);
+            transform: scale(1.02);
         }
 
         table {
@@ -149,8 +261,15 @@ $jsonData1 = json_decode(file_get_contents($jsonPath1), true);
 <body>
     <?php include "student_menu.php"; ?>
     <div class="container">
-        <h2>問題歷史紀錄</h2>
+        <h2>新增系統問題</h2>
+        <form method="POST" class="add-box" enctype="multipart/form-data">
+            <input type="text" name="description" placeholder="訴求" required>
+            <input type="file" name="images[]" id="fileInput" accept="image/*" multiple style="display:none">
+            <button type="button" id="fileBtn">選擇圖片</button>
+            <button type="submit" name="add_report">新增</button>
+        </form>
 
+        <h2>問題歷史紀錄</h2>
         <table>
             <tr>
                 <th>流水號</th>
@@ -273,6 +392,11 @@ $jsonData1 = json_decode(file_get_contents($jsonPath1), true);
                 document.getElementById("modalImg").src = images[index];
             }
         }
+
+        //新增上傳圖片
+        const fileInput = document.getElementById('fileInput');
+        const fileBtn = document.getElementById('fileBtn');
+        fileBtn.addEventListener('click', () => fileInput.click());
     </script>
 </body>
 
