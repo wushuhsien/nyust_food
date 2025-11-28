@@ -9,77 +9,51 @@ if (!$account) {
     exit;
 }
 
-// 讀取 投訴店家 store_report.json
+// 讀取 store_report.json
 $jsonPath = "../JSON/store_report.json";
 $jsonData = json_decode(file_get_contents($jsonPath), true);
 
-// 讀取 系統問題 admin_report.json
-$jsonPath1 = "../JSON/admin_report.json";
-$jsonData1 = json_decode(file_get_contents($jsonPath1), true);
+// 處理修改或刪除
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $report_id = intval($_POST['report_id'] ?? 0);
+    $action = $_POST['action'] ?? '';
 
-//上傳圖片+新增系統問題
-if (isset($_POST['add_report'])) {
-    $description = trim($_POST['description']);
+    if ($report_id > 0) {
+        if ($action === "update") {
+            $status = $_POST['status'] ?? '';
 
-    // 設定時區為台北
-    date_default_timezone_set('Asia/Taipei');
-    $time = date("Y-m-d H:i:s"); // PHP 時間
+            //先查出該報告在資料庫的資料
+            $stmt2 = $link->prepare("SELECT account_student, description, time FROM report WHERE report_id=?");
+            $stmt2->bind_param("i", $report_id);
+            $stmt2->execute();
+            $result2 = $stmt2->get_result();
+            $target = $result2->fetch_assoc();
+            $stmt2->close();
 
-    $date = date('Ymd'); // 當天日期格式
+            //更新資料庫
+            $stmt = $link->prepare("UPDATE `report` SET `status`=? WHERE `report_id`=?");
+            $stmt->bind_param("si", $status, $report_id);
+            if ($stmt->execute()) {
+                //同步JSON
+                foreach ($jsonData as &$item) {
+                    if (
+                        $item["user_account"] == $target["account_student"] &&
+                        $item["description"] == $target["description"] &&
+                        $item["time"] == $target["time"]
+                    ) {
+                        $item["status"] = $status;
+                        break;
+                    }
+                }
+                file_put_contents($jsonPath, json_encode($jsonData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-    // 1. 上傳圖片
-    $uploadDir = "../picture/report/admin/"; // 存檔資料夾
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-
-    $savedFiles = [];
-    if (!empty($_FILES['images']['name'][0])) {
-        $count = 1;
-        foreach ($_FILES['images']['tmp_name'] as $index => $tmpName) {
-            $ext = pathinfo($_FILES['images']['name'][$index], PATHINFO_EXTENSION);
-            $newName = sprintf("%s_%s_%02d.%s", $date, $account, $count, $ext);
-            $destination = $uploadDir . $newName;
-
-            if (move_uploaded_file($tmpName, $destination)) {
-                $savedFiles[] = "../picture/report/admin/" . $newName; // 使用正常斜線
+                echo "<script>alert('修改成功！'); window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
             } else {
-                error_log("上傳檔案失敗: " . $_FILES['images']['name'][$index]);
+                echo "<script>alert('修改失敗！');</script>";
             }
+            $stmt->close();
         }
     }
-
-    // 2. 新增資料到資料庫
-    $link->begin_transaction();
-    $stmt = $link->prepare("INSERT INTO `report`(`description`, `time`, `type`, `status`, `account_student`, `account_store`) VALUES (?, CURRENT_TIMESTAMP(), '系統問題', '未處理', ?, NULL)");
-    $stmt->bind_param("ss", $description, $account);
-
-    if ($stmt->execute()) {
-        $link->commit();
-    } else {
-        $link->rollback();
-        echo "<script>alert('新增失敗: " . $stmt->error . "'); history.back();</script>";
-        exit;
-    }
-
-    // 3. 新增資料到 JSON
-    $jsonPath = "../JSON/admin_report.json";
-    $jsonData = file_exists($jsonPath) ? json_decode(file_get_contents($jsonPath), true) : [];
-
-    $nextId = !empty($jsonData) ? max(array_column($jsonData, 'report_id')) + 1 : 1;
-
-    $jsonData[] = [
-        'report_id' => $nextId,
-        'user_account' => $account,
-        'description' => $description,
-        'images' => $savedFiles,   // 確認 $savedFiles 有值
-        'time' => $time,
-        'status' => '未處理'
-    ];
-
-    file_put_contents($jsonPath, json_encode($jsonData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
-
-    echo "<script>alert('新增系統問題成功！');window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
-    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -87,19 +61,8 @@ if (isset($_POST['add_report'])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>問題歷史紀錄</title>
+    <title>店家被投訴歷史紀錄</title>
     <style>
-        :root {
-            --main-green: #4caf50;
-            --dark-green: #388e3c;
-            --main-brown: #C19A6B;
-            --dark-brown: #5C3D2E;
-            --blue: #1e88e5;
-            --purple: #8e24aa;
-            --orange: #fb8c00;
-            --gray: #6c757d;
-        }
-
         body {
             margin: 0;
             padding: 0;
@@ -121,42 +84,6 @@ if (isset($_POST['add_report'])) {
             margin-bottom: 25px;
             color: #333;
             font-size: 26px;
-        }
-
-        .add-box {
-            display: flex;
-            gap: 20px;
-            padding: 12px;
-            background: #fafafa;
-            border-radius: 12px;
-            margin-bottom: 18px;
-
-        }
-
-        .add-box input {
-            width: 200px;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            font-size: 14px;
-        }
-
-        .add-box button {
-            width: 100px;
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            background: var(--main-brown);
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .add-box button:hover {
-            background: var(--dark-brown);
-            transform: scale(1.02);
         }
 
         table {
@@ -259,36 +186,29 @@ if (isset($_POST['add_report'])) {
 </head>
 
 <body>
-    <?php include "student_menu.php"; ?>
+    <?php include "store_menu.php"; ?>
     <div class="container">
-        <h2>新增系統問題</h2>
-        <form method="POST" class="add-box" enctype="multipart/form-data">
-            <input type="text" name="description" placeholder="訴求" required>
-            <input type="file" name="images[]" id="fileInput" accept="image/*" multiple style="display:none">
-            <button type="button" id="fileBtn">選擇圖片</button>
-            <button type="submit" name="add_report">新增</button>
-        </form>
+        <h2>店家被投訴歷史紀錄</h2>
 
-        <h2>問題歷史紀錄</h2>
         <table>
             <tr>
                 <th>流水號</th>
+                <th>投訴者</th>
                 <th>訴求</th>
                 <th>圖片</th>
                 <th>時間</th>
-                <th>被投訴店家</th>
                 <th>狀態</th>
+                <th>操作</th>
             </tr>
 
             <?php
-            $sql = "SELECT `description`, `time`, `account_store`, `type`, `status`
+            $sql = "SELECT `report_id`, `account_student`, `description`, `time`, `status`
                 FROM `report`
-                WHERE `account_student`='$account'
+                WHERE `type`='投訴店家' And `account_store`='$account'
                 ORDER BY `time` ASC";
 
             $result = $link->query($sql);
             $count = 1;
-
             if ($result->num_rows == 0) {
                 echo "<tr>
                         <td colspan='7' style='padding:20px; font-size:18px; color:#888;'>
@@ -299,22 +219,10 @@ if (isset($_POST['add_report'])) {
                 while ($row = $result->fetch_assoc()) {
                     $images = [];
 
-                    // 比對 投訴店家JSON 找圖片
+                    // 比對 JSON 找圖片
                     foreach ($jsonData as $item) {
                         if (
-                            $item["description"] == $row["description"] &&
-                            $item["time"] == $row["time"] &&
-                            $item["store_account"] == $row["account_store"]
-                        ) {
-                            $images = $item["images"];
-                            break;
-                        }
-                    }
-
-                    // 比對 系統問題JSON 找圖片
-                    foreach ($jsonData1 as $item) {
-                        if (
-                            $item["user_account"] == $account &&
+                            $item["user_account"] == $row["account_student"] &&
                             $item["description"] == $row["description"] &&
                             $item["time"] == $row["time"]
                         ) {
@@ -323,12 +231,16 @@ if (isset($_POST['add_report'])) {
                         }
                     }
 
-                    if (!empty($images)) {
-                        $imgJson = htmlspecialchars(json_encode($images), ENT_QUOTES);
-                        $btn = "<button onclick='showImages($imgJson)'>查看</button>";
-                    } else {
-                        $btn = "";
+                    $imgBtn = !empty($images) ? "<button onclick='showImages(" . htmlspecialchars(json_encode($images), ENT_QUOTES) . ")'>查看</button>" : "";
+
+                    // 狀態下拉選單
+                    $statusOptions = ["未處理", "處理中", "已完成"];
+                    $statusSelect = "<select name='status'>";
+                    foreach ($statusOptions as $status) {
+                        $selected = ($row['status'] === $status) ? "selected" : "";
+                        $statusSelect .= "<option value='{$status}' $selected>{$status}</option>";
                     }
+                    $statusSelect .= "</select>";
 
                     // 狀態顯示樣式
                     $statusClass = "s1";
@@ -337,11 +249,20 @@ if (isset($_POST['add_report'])) {
 
                     echo "<tr>
                             <td>{$count}</td>
+                            <td>{$row['account_student']}</td>
                             <td>{$row['description']}</td>
-                            <td>$btn</td>
+                            <td>$imgBtn</td>
                             <td>{$row['time']}</td>
-                            <td>{$row['account_store']}</td>
-                            <td><span class='status {$statusClass}'>{$row['status']}</span></td>
+                            <td>                
+                            <form method='POST' style='display:inline-block;'>
+                                $statusSelect
+                            </td>
+                            <td>                    
+                                <input type='hidden' name='report_id' value='{$row['report_id']}'>
+                                    <input type='hidden' name='action' value='update'>
+                                    <button type='submit' class='action-btn update-btn'>修改</button>
+                                </form>
+                            </td>
                         </tr>";
                     $count++;
                 }
@@ -399,11 +320,6 @@ if (isset($_POST['add_report'])) {
                 document.getElementById("modalImg").src = images[index];
             }
         }
-
-        //新增上傳圖片
-        const fileInput = document.getElementById('fileInput');
-        const fileBtn = document.getElementById('fileBtn');
-        fileBtn.addEventListener('click', () => fileInput.click());
     </script>
 </body>
 

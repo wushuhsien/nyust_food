@@ -33,16 +33,19 @@ if (isset($_POST['add_report'])) {
 
     $savedFiles = [];
     if (!empty($_FILES['images']['name'][0])) {
-        $count = 1;
+        $fileCount = 1; // 從 1 開始編號
         foreach ($_FILES['images']['tmp_name'] as $index => $tmpName) {
-            $ext = pathinfo($_FILES['images']['name'][$index], PATHINFO_EXTENSION);
-            $newName = sprintf("%s_%s_%02d.%s", $date, $account, $count, $ext);
-            $destination = $uploadDir . $newName;
+            if (!empty($tmpName)) { // 確保檔案存在
+                $ext = pathinfo($_FILES['images']['name'][$index], PATHINFO_EXTENSION);
+                $newName = sprintf("%s_%s_%02d.%s", $date, $account, $fileCount, $ext);
+                $destination = $uploadDir . $newName;
 
-            if (move_uploaded_file($tmpName, $destination)) {
-                $savedFiles[] = "../picture/report/admin/" . $newName; // 使用正常斜線
-            } else {
-                error_log("上傳檔案失敗: " . $_FILES['images']['name'][$index]);
+                if (move_uploaded_file($tmpName, $destination)) {
+                    $savedFiles[] = "../picture/report/admin/" . $newName;
+                    $fileCount++; // 成功上傳後才增加編號
+                } else {
+                    error_log("上傳檔案失敗: " . $_FILES['images']['name'][$index]);
+                }
             }
         }
     }
@@ -259,7 +262,7 @@ if (isset($_POST['add_report'])) {
 </head>
 
 <body>
-    <?php include "student_menu.php"; ?>
+    <?php include "store_menu.php"; ?>
     <div class="container">
         <h2>新增系統問題</h2>
         <form method="POST" class="add-box" enctype="multipart/form-data">
@@ -276,7 +279,6 @@ if (isset($_POST['add_report'])) {
                 <th>訴求</th>
                 <th>圖片</th>
                 <th>時間</th>
-                <th>被投訴店家</th>
                 <th>狀態</th>
             </tr>
 
@@ -288,7 +290,6 @@ if (isset($_POST['add_report'])) {
 
             $result = $link->query($sql);
             $count = 1;
-
             if ($result->num_rows == 0) {
                 echo "<tr>
                         <td colspan='7' style='padding:20px; font-size:18px; color:#888;'>
@@ -340,7 +341,6 @@ if (isset($_POST['add_report'])) {
                             <td>{$row['description']}</td>
                             <td>$btn</td>
                             <td>{$row['time']}</td>
-                            <td>{$row['account_store']}</td>
                             <td><span class='status {$statusClass}'>{$row['status']}</span></td>
                         </tr>";
                     $count++;

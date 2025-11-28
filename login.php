@@ -40,7 +40,7 @@ if ($result->num_rows === 1) {
             echo "<script>alert('登入成功！'); window.location='student/student.php';</script>";
         } else if ($role == 1) {
             addLoginAction($link, $username);
-            echo "<script>alert('登入成功！'); window.location='store.php';</script>";
+            echo "<script>alert('登入成功！'); window.location='store/store.php';</script>";
         } else if ($role == 2) {
             addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='admin/admin.php';</script>";

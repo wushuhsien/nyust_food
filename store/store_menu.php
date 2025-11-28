@@ -15,6 +15,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
             background-color: #fdf6f0;
             /* 淡咖啡色背景 */
         }
+
         /* 上方橙色條 */
         .top-menu {
             background-color: #f28c28;
@@ -137,8 +138,12 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
                         <input type="button" value="歷史訂單" onclick="alert('歷史訂單')">
                         <input type="button" value="評價紀錄" onclick="alert('評價紀錄')">
                     </div>
-                    <input type="button" value="問題" onclick="alert('問題按鈕')">
-                    <input type="button" value="登出" onclick="window.location='login.html'">
+                    <input type="button" value="問題 ▼" onclick="toggleSubMenu3()">
+                    <div id="subMenu3" class="sub-dropdown">
+                        <input type="button" value="歷史紀錄" onclick="window.location='store_report1.php'">
+                        <input type="button" value="被投訴歷史紀錄" onclick="window.location='store_report2.php'">
+                    </div>
+                    <input type="button" value="登出" onclick="window.location='../login.html'">
                 </div>
             </div>
         </div>
@@ -152,6 +157,11 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
     function toggleSubMenu2() {
         var sub = document.getElementById("subMenu2");
+        sub.style.display = (sub.style.display === "block") ? "none" : "block";
+    }
+
+    function toggleSubMenu3() {
+        var sub = document.getElementById("subMenu3");
         sub.style.display = (sub.style.display === "block") ? "none" : "block";
     }
 
