@@ -101,6 +101,7 @@ include "../db.php";
         .storetype-box:hover {
             background-color: #d6e9ff;
         }
+        
     </style>
 </head>
 
@@ -109,8 +110,17 @@ include "../db.php";
 
     <!-- ====== 公告區 ====== -->
     <div id="b" style="display: grid; grid-template-columns: 1fr 1fr 0.6fr; gap: 20px;">
-        <!-- 左邊：店家公告 -->
-        <div style="flex:1; border:2px solid #4a90e2; border-radius:10px; padding:15px; background-color:#e8f3ff; max-height:500px; overflow-y:auto;">
+        <!-- 左邊：店家類型 -->
+        <div onclick="location.href='student_menumanage.php';"
+            style="cursor:pointer; flex:1; border:2px solid #4a90e2; border-radius:10px; padding:15px; background-color:#e8f3ff; max-height:500px; overflow-y:auto; transition: 0.3s;">
+
+            <h2 style="text-align:center; color:#005AB5;">訂餐</h2>
+
+        </div>
+
+        <!-- 中間：店家公告 -->
+        <div
+            style="flex:1; border:2px solid #4a90e2; border-radius:10px; padding:15px; background-color:#e8f3ff; max-height:500px; overflow-y:auto;">
             <h2 style="text-align:center; color:#005AB5;">店家公告</h2>
             <?php
             $sql_store = "SELECT a.announcement_id, a.topic, a.description, a.start_time, a.end_time, s.name AS store_name
@@ -138,8 +148,9 @@ include "../db.php";
             ?>
         </div>
 
-        <!-- 中間：系統公告 -->
-        <div style="flex:1; border:2px solid #4a90e2; border-radius:10px; padding:15px; background-color:#e8f3ff; max-height:500px; overflow-y:auto;">
+        <!-- 右邊：系統公告 -->
+        <div
+            style="flex:1; border:2px solid #4a90e2; border-radius:10px; padding:15px; background-color:#e8f3ff; max-height:500px; overflow-y:auto;">
             <h2 style="text-align:center; color:#005AB5;">系統公告</h2>
             <?php
             $sql_admin = "SELECT announcement_id, topic, description, start_time, end_time
@@ -164,25 +175,7 @@ include "../db.php";
             }
             ?>
         </div>
-        <!-- 右邊：店家類型 -->
-        <div style="flex:1; border:2px solid #4a90e2; border-radius:10px; padding:15px; background-color:#e8f3ff; max-height:500px; overflow-y:auto;">
-            <h2 style="text-align:center; color:#005AB5;">店家類型</h2>
-            <div class="storetype-container">
-                <?php
-                $sql2 = "SELECT `storetype_id`, `name` FROM `storetype`";
-                $result2 = $link->query($sql2);
-                if ($result2->num_rows > 0) {
-                    while ($row2 = $result2->fetch_assoc()) {
-                        $id = $row2['storetype_id'];
-                        $name = htmlspecialchars($row2['name']);
-                        echo '<a class="storetype-box" style="display:block; width:50%; margin:0 auto 10px; text-align:center;" href="store_list.php?type=' . $id . '">' . $name . '</a>';
-                    }
-                } else {
-                    echo "<p>沒有店家類型資料。</p>";
-                }
-                ?>
-            </div>
-        </div>
+
     </div>
 </body>
 
