@@ -39,6 +39,7 @@ if (!$account) {
 
         /* ====== 公告與區塊通用樣式 ====== */
         .dashboard-card {
+            width: 450px;
             border: 2px solid #4a90e2;
             border-radius: 10px;
             padding: 15px;
@@ -139,7 +140,7 @@ if (!$account) {
 
         .btn-order-more {
             display: block;
-            width: 100%;
+            width: 95%;
             text-align: center;
             background: #4a90e2;
             color: white;
@@ -170,7 +171,7 @@ if (!$account) {
 <body>
     <?php include "student_menu.php"; ?>
 
-    <div id="b" style="display: grid; grid-template-columns: 1fr 1fr 0.8fr; gap: 20px;">
+    <div id="b" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
 
         <div class="dashboard-card">
             <h2 class="dashboard-title"><i class="bi bi-receipt"></i> 進行中的訂單</h2>
@@ -289,7 +290,7 @@ if (!$account) {
             </a>
         </div>
 
-        <div class="dashboard-card">
+        <!-- <div class="dashboard-card">
             <h2 class="dashboard-title"><i class="bi bi-shop-window"></i> 店家公告</h2>
             <?php
             $sql_store = "SELECT a.topic, a.description, a.start_time, a.end_time, s.name AS store_name
@@ -315,7 +316,7 @@ if (!$account) {
                 echo "<p style='text-align:center; color:#888;'>目前沒有店家店休公告。</p>";
             }
             ?>
-        </div>
+        </div> -->
 
         <div class="dashboard-card">
             <h2 class="dashboard-title"><i class="bi bi-megaphone"></i> 系統公告</h2>

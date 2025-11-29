@@ -9,7 +9,7 @@ date_default_timezone_set("Asia/Taipei");
 // ★ 1. AJAX 處理區塊 (維持不變)
 // ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_cart') {
-    
+
     // 初始化購物車
     if (!isset($_SESSION['cart'])) {
         $_SESSION['cart'] = [];
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     foreach ($_SESSION['cart'] as $qty) {
         $total_items += $qty;
     }
-    
+
     echo $total_items;
     exit;
 }
@@ -574,25 +574,66 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
             display: inline-block;
             line-height: 1.4;
         }
+
+        /* ====== 公告與區塊通用樣式 ====== */
+        #b {
+            background-color: transparent;
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+
+        .dashboard-card {
+            width: 450px;
+            border: 2px solid #4a90e2;
+            border-radius: 10px;
+            padding: 15px;
+            background-color: #f9fbff;
+            max-height: 500px;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .dashboard-title {
+            text-align: center;
+            color: #005AB5;
+            margin-top: 0;
+            border-bottom: 2px solid #dcebfc;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .announcement {
+            background: #e8f3ff;
+            border: 1px solid #4a90e2;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .announcement p {
+            margin: 6px 0;
+            line-height: 1.5;
+        }
     </style>
 </head>
 
 <body>
-<?php include "student_menu.php"; ?>
-    
+    <?php include "student_menu.php"; ?>
+
     <?php
     $total_in_cart = 0;
-    if(isset($_SESSION['cart'])) {
-        foreach($_SESSION['cart'] as $q) $total_in_cart += $q;
+    if (isset($_SESSION['cart'])) {
+        foreach ($_SESSION['cart'] as $q) $total_in_cart += $q;
     }
     ?>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var badge = document.getElementById('global-cart-count');
-            if(badge) badge.innerText = "<?= $total_in_cart ?>";
+            if (badge) badge.innerText = "<?= $total_in_cart ?>";
         });
     </script>
-    
+
     <br>
     <br>
     <div class="search-section">
@@ -626,6 +667,37 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
         }
         ?>
     </div>
+    <div id="b" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+        <div class="dashboard-card">
+            <h2 class="dashboard-title"><i class="bi bi-megaphone"></i> 店家公告</h2>
+            <div style="max-height: 150px; overflow-y: auto;">
+                <?php
+                $sql_store = "SELECT a.topic, a.description, a.start_time, a.end_time, s.name AS store_name
+                            FROM announcement a
+                            JOIN store s ON a.account = s.account
+                            WHERE a.type = '店休'
+                                AND a.start_time <= NOW()
+                                AND a.end_time >= NOW()
+                            ORDER BY a.start_time DESC";
+
+                $result_store = $link->query($sql_store);
+
+                if ($result_store->num_rows > 0) {
+                    while ($row = $result_store->fetch_assoc()) {
+                        echo '<div class="announcement">';
+                        echo '<p style="color:#d35400; font-weight:bold;">' . htmlspecialchars($row['store_name']) . '</p>';
+                        echo '<p><strong>主題：</strong>' . htmlspecialchars($row['topic']) . '</p>';
+                        echo '<p style="font-size:14px; color:#555;">' . nl2br(htmlspecialchars($row['description'])) . '</p>';
+                        echo '<p style="font-size:12px; color:#888; margin-top:5px;">' . htmlspecialchars($row['start_time']) . ' ~ ' . htmlspecialchars($row['end_time']) . '</p>';
+                        echo '</div>';
+                    }
+                } else {
+                    echo "<p style='text-align:center; color:#888;'>目前沒有店家店休公告。</p>";
+                }
+                ?>
+            </div>
+        </div>
+    </div>
 
     <div id="store-list">
         <?php
@@ -653,12 +725,12 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                 }
                 $menu_stmt->close();
                 $store_uid = "store_" . $store['store_id'];
-                ?>
+        ?>
 
                 <div class="store-container">
                     <div class="store-title">
                         <span><i class="bi bi-shop"></i> <?= htmlspecialchars($store['name']) ?></span>
-                        
+
                         <small style="color:#888; font-size:14px; font-weight:normal;">
                             <i class="bi bi-telephone"></i> <?= htmlspecialchars($store['phone']) ?>
                             <span style="margin: 0 8px; color:#ccc;">|</span>
@@ -684,7 +756,7 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                                     $menu_id = $menu['menu_id'];
                                     $max_stock = $menu['stock'];
                                     $current_qty_in_cart = isset($cart_data[$menu_id]) ? $cart_data[$menu_id] : 0;
-                                    ?>
+                                ?>
                                     <div class="menu-card-item">
                                         <div class="menu-info-left">
                                             <div class="menu-name-text"><?= htmlspecialchars($menu['name']) ?></div>
@@ -715,7 +787,7 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                                             <?php endif; ?>
                                             <div class="menu-img-box" style="overflow:hidden; position:relative; padding:0;">
                                                 <?php if (!empty($menu['img_id'])): ?>
-                                                    <img src="../store/get_image.php?id=<?= $menu['img_id'] ?>" 
+                                                    <img src="../store/get_image.php?id=<?= $menu['img_id'] ?>"
                                                         alt="<?= htmlspecialchars($menu['name']) ?>"
                                                         style="width:100%; height:100%; object-fit:cover; border-radius:8px;">
                                                 <?php else: ?>
@@ -752,7 +824,7 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
         dropdown.style.display = (dropdown.style.display === "block") ? "none" : "block";
     }
 
-    window.onclick = function (event) {
+    window.onclick = function(event) {
         if (!event.target.closest('.dropdown')) {
             document.getElementById("myDropdown").style.display = "none";
         }
@@ -763,13 +835,13 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
     function updateQty(menuId, change, maxStock) {
         // 1. 抓取該商品的 input 欄位
         var qtyInput = document.getElementById('qty-' + menuId);
-        
+
         // 防呆：如果找不到欄位就結束
         if (!qtyInput) return;
 
         // 2. 取得「變動前」的數量
         var currentQty = parseInt(qtyInput.value) || 0;
-        
+
         // 3. 計算「預期的新數量」
         var newQty = currentQty + change;
 
@@ -802,7 +874,7 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
     // ★ 輔助函式：更新右上角購物車總數
     function updateGlobalCartCount(diff) {
         var badge = document.getElementById('global-cart-count');
-        
+
         // 確保 header 有載入且抓得到這個 ID
         if (badge) {
             var currentTotal = parseInt(badge.innerText) || 0;
@@ -812,7 +884,7 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
             if (newTotal < 0) newTotal = 0;
 
             badge.innerText = newTotal;
-            
+
             // 加一個簡單的縮放動畫，讓使用者注意到數字變了
             badge.style.transition = "transform 0.2s";
             badge.style.transform = "scale(1.5)";
@@ -847,20 +919,20 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
 
         // 3. 發送到當前頁面 (student_menumanage.php)
         fetch('student_menumanage.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.text())
-        .then(totalItems => {
-            // 4. 更新右上角購物車
-            var badge = document.getElementById('global-cart-count');
-            if (badge) {
-                badge.innerText = totalItems;
-                badge.style.transform = "scale(1.5)";
-                setTimeout(() => badge.style.transform = "scale(1)", 200);
-            }
-        })
-        .catch(error => console.error('Error:', error));
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(totalItems => {
+                // 4. 更新右上角購物車
+                var badge = document.getElementById('global-cart-count');
+                if (badge) {
+                    badge.innerText = totalItems;
+                    badge.style.transform = "scale(1.5)";
+                    setTimeout(() => badge.style.transform = "scale(1)", 200);
+                }
+            })
+            .catch(error => console.error('Error:', error));
     }
 </script>
 
