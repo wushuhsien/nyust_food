@@ -16,9 +16,7 @@ if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// ==========================================
 // 1. 處理購物車內容修改 (增加/減少/刪除)
-// ==========================================
 if (isset($_GET['action']) && isset($_GET['id'])) {
     $action = $_GET['action'];
     $id = intval($_GET['id']);
@@ -40,9 +38,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     exit;
 }
 
-// ==========================================
 // 2. 處理單一店家結帳送出
-// ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
     
     // 接收該店家的資訊
@@ -91,36 +87,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                 throw new Exception("找不到該店家的商品，可能已被移除");
             }
 
-            // 2-2. 時間驗證邏輯
-            // 計算系統預估最快完成時間 (現在 + 最大烹煮時間)
-            $estimate_timestamp = time() + $max_cook_seconds;
+            // ★ 修改重點：撈取該店家的「今日營業時間」以計算正確的基準時間
+            $current_weekday = date('w');
+            $sql_hours = "SELECT open_time FROM storehours WHERE account = ? AND weekday = ?";
+            $stmt_hours = $link->prepare($sql_hours);
+            $stmt_hours->bind_param("si", $target_store_account, $current_weekday);
+            $stmt_hours->execute();
+            $res_hours = $stmt_hours->get_result();
+            
+            $today_open_time_str = "00:00:00"; // 預設值
+            if ($row_h = $res_hours->fetch_assoc()) {
+                $today_open_time_str = $row_h['open_time'];
+            }
+            $stmt_hours->close();
+
+            // 計算時間戳記
+            $today_open_timestamp = strtotime(date('Y-m-d') . ' ' . $today_open_time_str);
+            $current_timestamp = time();
+
+            // ★ 核心邏輯：基準時間 = MAX(現在時間, 今日開店時間)
+            // 如果現在 8:45，開店 9:00 -> 基準時間為 9:00
+            // 如果現在 9:10，開店 9:00 -> 基準時間為 9:10
+            $base_timestamp = max($current_timestamp, $today_open_timestamp);
+
+            // 預估系統最快完成時間 = 基準時間 + 製作時間
+            $estimate_timestamp = $base_timestamp + $max_cook_seconds;
             $estimate_time = date('Y-m-d H:i:s', $estimate_timestamp);
             
             $user_pick_timestamp = strtotime($user_pick_time);
 
-            // ★ 修改：如果使用者選擇的時間 < 系統預估時間，停止並警告
+            // 驗證：使用者選的時間不能早於系統計算出的最快完成時間
             if ($user_pick_timestamp < $estimate_timestamp) {
                 // 為了友善顯示，轉成 HH:mm 格式提示
                 $min_time_str = date('H:i', $estimate_timestamp);
                 echo "<script>
-                    alert('您選擇的取餐時間太早了！\\n系統計算此訂單最快需於 {$min_time_str} 後才能取餐。\\n請重新選擇時間。');
+                    alert('您選擇的取餐時間太早了！\\n依據店家營業時間與製作時間，此訂單最快需於 {$min_time_str} 後才能取餐。\\n請重新選擇時間。');
                     history.back(); 
                 </script>";
                 exit; // 停止程式，不進行資料庫寫入
             }
 
             // 2-3. 寫入 order 主表
-            // 修改：雖然使用者選了時間，但依照你的需求，pick_time 在 DB 保持 NULL 等店家確認
-            // 若你想把使用者希望的時間存入，建議可以併入 note，或者這裡還是維持 NULL
+            // 修改：使用 $user_pick_time (使用者選擇的時間) 作為預估時間存入 estimate_time 欄位
+            // 或者你可以維持存入系統計算的 $estimate_time，看你的需求。
+            // 這裡依照上一輪的修正，我們將 estimate_time 欄位存入「使用者選擇的時間」
             $order_sql = "INSERT INTO `order` (estimate_time, status, note, payment, account) 
                           VALUES (?, ?, ?, ?, ?)";
             $status = "等待店家接單";
             $payment = "現金"; 
             
             $stmt = $link->prepare($order_sql);
-            
-            // ★ 修改重點：這裡原本是 $estimate_time，請改為 $user_pick_time
-            // 這樣存入資料庫的才會是使用者自己選的時間
             $stmt->bind_param("sssss", $user_pick_time, $status, $user_note, $payment, $account);
             
             if (!$stmt->execute()) {
@@ -269,6 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
         </div>
 
         <?php
+        // 讀取購物車 Session
         $cart = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
 
         if (empty($cart)): ?>
@@ -278,7 +295,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                 <a href="student_menumanage.php" style="color: #4a90e2; text-decoration: none; font-weight: bold;">前往點餐</a>
             </div>
         <?php else: 
+            // 撈取資料庫並依店家分組
             $ids = implode(',', array_keys($cart));
+            // 為了要分開送出，我們需要選取 store.account (作為識別店家的 Key)
             $sql = "SELECT m.*, s.name as store_name, s.account as store_account 
                     FROM menu m 
                     JOIN store s ON m.account = s.account 
@@ -290,9 +309,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
             
             while ($row = $result->fetch_assoc()) {
                 $m_id = $row['menu_id'];
+                // 確保 session 還有這個 key (防呆)
                 if(isset($cart[$m_id])) {
                     $row['qty'] = $cart[$m_id];
                     $row['subtotal'] = $row['price'] * $cart[$m_id];
+                    // 使用 store_account 作為分組 key
                     $grouped_items[$row['store_account']][] = $row; 
                 }
             }
@@ -303,6 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
             $store_total = 0;
             $max_cook_seconds = 0;
             
+            // 計算該店總金額與最大烹煮時間
             foreach($items as $item) {
                 $store_total += $item['subtotal'];
                 $time_parts = explode(':', $item['cook_time']);
@@ -310,10 +332,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                 if ($seconds > $max_cook_seconds) $max_cook_seconds = $seconds;
             }
 
-            // 計算系統建議取餐時間
-            $now_plus_cook = time() + $max_cook_seconds;
-            $suggested_time_str = date('Y-m-d\TH:i', $now_plus_cook);
-            $display_time_hint = date('H:i', $now_plus_cook);
+            // ★ 修改重點：撈取該店家的「今日營業時間」
+            // 目的是為了讓前端 input 預設值顯示「MAX(現在, 開店) + 製作時間」
+            $current_weekday = date('w');
+            $sql_h = "SELECT open_time FROM storehours WHERE account = ? AND weekday = ?";
+            $stmt_h = $link->prepare($sql_h);
+            $stmt_h->bind_param("si", $store_account, $current_weekday);
+            $stmt_h->execute();
+            $res_h = $stmt_h->get_result();
+            
+            $today_open_ts = time(); // 預設值為現在
+            if($row_h = $res_h->fetch_assoc()){
+                // 將店家今天的 open_time 轉為 Timestamp
+                $today_open_ts = strtotime(date('Y-m-d').' '.$row_h['open_time']);
+            }
+            $stmt_h->close();
+
+            // 計算基準時間：如果現在還沒開門，就從開門時間算起
+            $base_ts = max(time(), $today_open_ts);
+            
+            // 預計完成時間 = 基準時間 + 製作時間
+            $final_predict_ts = $base_ts + $max_cook_seconds;
+
+            $suggested_time_str = date('Y-m-d\TH:i', $final_predict_ts);
+            $display_time_hint = date('H:i', $final_predict_ts);
         ?>
             
             <form method="POST" action="student_cart.php">

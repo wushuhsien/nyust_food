@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "../db.php"; // 確保連結資料庫
+include "../db.php";
 
 // 設定時區為台灣時間 (重要：否則篩選營業時間會不準)
 date_default_timezone_set("Asia/Taipei");
@@ -82,12 +82,12 @@ $current_time = date('H:i:s'); // 取得目前時間 (HH:mm:ss)
 // 注意：如果你的資料庫 weekday 存的是 1-7 (1=週一, 7=週日)，這邊可能需要轉換
 // 這裡預設你的資料庫 weekday 也是跟 PHP 一樣 (0=週日 ~ 6=週六)
 $sql .= " AND EXISTS (
-            SELECT 1 FROM storehours h
-            WHERE h.account = s.account
-            AND h.weekday = ?
-            AND h.open_time <= ?
-            AND h.close_time >= ?
-          )";
+    SELECT 1 FROM storehours h
+    WHERE h.account = s.account
+    AND h.weekday = ?
+    AND ? >= SUBTIME(h.open_time, '00:30:00')
+    AND h.close_time >= ?
+  )";
 
 $params[] = $current_weekday;
 $params[] = $current_time;
