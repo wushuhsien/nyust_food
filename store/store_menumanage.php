@@ -243,7 +243,7 @@ $stmt->close();
             font-size: 30px;
             flex-shrink: 0;
         }
-        
+
         /* 查詢表單 */
         .search-form {
             display: flex;
@@ -266,14 +266,50 @@ $stmt->close();
 
         /* 刪除按鈕樣式 (預設隱藏，編輯模式顯示) */
         .delete-item-btn {
-            position: absolute; top: 5px; right: 5px; 
-            background: #e74c3c; color: white; 
-            width: 24px; height: 24px; border-radius: 50%; 
-            font-size: 12px; display: none; /* 預設隱藏 */
-            justify-content: center; align-items: center;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #e74c3c;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: none;
+            /* 預設隱藏 */
+            justify-content: center;
+            align-items: center;
         }
+
         .delete-type-btn {
-            background: #c0392b; color: white; padding: 4px 10px; font-size: 14px; display: none; /* 預設隱藏 */
+            background: #c0392b;
+            color: white;
+            padding: 4px 10px;
+            font-size: 14px;
+            display: none;
+            /* 預設隱藏 */
+        }
+
+        /* 新增在上方的 style 標籤內 */
+        .upload-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            /* 半透明黑色 */
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        .upload-overlay:hover {
+            background: rgba(0, 0, 0, 0.7);
         }
     </style>
 
@@ -322,6 +358,8 @@ $stmt->close();
                 烹飪時間（分鐘）：<br>
                 <input type="number" id="itemCook" placeholder="例如：15"><br><br>
 
+                餐點圖片：<br>
+                <input type="file" id="itemImgFile" accept="image/*"><br><br>
 
                 <button id="saveItemBtn" style="background:#f28c28; color:white; padding:6px 12px;">
                     儲存品項
@@ -332,7 +370,8 @@ $stmt->close();
     <div id="b">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h1>我的菜單</h1>
-            <button onclick="toggleAddMenu()" id="toggleBtn" style="background:#f28c28; color:white; padding:8px 14px; font-size:14px;">
+            <button onclick="toggleAddMenu()" id="toggleBtn"
+                style="background:#f28c28; color:white; padding:8px 14px; font-size:14px;">
                 編輯菜單
             </button>
         </div>
@@ -354,7 +393,8 @@ $stmt->close();
                             <div id="cat-<?= htmlspecialchars($type) ?>" class="category-title">
                                 <?= htmlspecialchars($type) ?>
                             </div>
-                            <button type="button" class="delete-type-btn edit-mode" onclick="deleteType('<?= htmlspecialchars($type) ?>')">
+                            <button type="button" class="delete-type-btn edit-mode"
+                                onclick="deleteType('<?= htmlspecialchars($type) ?>')">
                                 <i class="bi bi-trash"></i> 刪除此系列
                             </button>
                         </div>
@@ -371,32 +411,39 @@ $stmt->close();
                                         <div class="menu-name">
                                             <span class="view-mode"><?= htmlspecialchars($item['name']) ?></span>
                                             <input type="text" class="edit-mode form-control" name="menu[<?= $id ?>][name]"
-                                                value="<?= htmlspecialchars($item['name']) ?>" style="display:none; width:100%; font-weight:bold; margin-bottom:5px;">
+                                                value="<?= htmlspecialchars($item['name']) ?>"
+                                                style="display:none; width:100%; font-weight:bold; margin-bottom:5px;">
                                         </div>
 
                                         <div class="menu-desc">
                                             <?php $desc = $item['description'] ?? ''; ?>
                                             <span class="view-mode"><?= htmlspecialchars($desc) ?></span>
                                             <input type="text" class="edit-mode" name="menu[<?= $id ?>][description]"
-                                                value="<?= htmlspecialchars($desc) ?>" placeholder="描述" style="display:none; width:100%; margin-bottom:5px;">
+                                                value="<?= htmlspecialchars($desc) ?>" placeholder="描述"
+                                                style="display:none; width:100%; margin-bottom:5px;">
                                         </div>
 
                                         <div class="menu-tags">
                                             <span class="view-mode">
                                                 <?php if (!empty($item['cook_time']) && $item['cook_time'] != '00:00:00'): ?>
-                                                    <span style="font-size:12px; color:#888; background:#eee; padding:2px 6px; border-radius:4px;"><i class="bi bi-clock"></i> <?= substr($item['cook_time'], 3, 2) ?>分</span>
+                                                    <span
+                                                        style="font-size:12px; color:#888; background:#eee; padding:2px 6px; border-radius:4px;"><i
+                                                            class="bi bi-clock"></i> <?= substr($item['cook_time'], 3, 2) ?>分</span>
                                                 <?php endif; ?>
                                             </span>
                                             <label class="edit-mode" style="display:none; font-size:12px;">時間(分):</label>
                                             <input type="number" class="edit-mode" name="menu[<?= $id ?>][cook_time]"
-                                                value="<?= isset($item['cook_time']) ? substr($item['cook_time'], 3, 2) : '' ?>" style="display:none; width:50px; padding:2px;">
+                                                value="<?= isset($item['cook_time']) ? substr($item['cook_time'], 3, 2) : '' ?>"
+                                                style="display:none; width:50px; padding:2px;">
 
                                             <span class="view-mode">
                                                 <?php if (isset($item['stock'])): ?>
-                                                    <span style="color:#27ae60; background:#eafaf1; font-size:12px; padding:2px 6px; border-radius:4px;">庫存:<?= $item['stock'] ?></span>
+                                                    <span
+                                                        style="color:#27ae60; background:#eafaf1; font-size:12px; padding:2px 6px; border-radius:4px;">庫存:<?= $item['stock'] ?></span>
                                                 <?php endif; ?>
                                             </span>
-                                            <label class="edit-mode" style="display:none; font-size:12px; margin-left:5px;">庫存:</label>
+                                            <label class="edit-mode"
+                                                style="display:none; font-size:12px; margin-left:5px;">庫存:</label>
                                             <input type="number" class="edit-mode" name="menu[<?= $id ?>][stock]"
                                                 value="<?= $item['stock'] ?>" style="display:none; width:50px; padding:2px;">
                                         </div>
@@ -405,21 +452,36 @@ $stmt->close();
                                             <span class="view-mode">$<?= number_format($item['price']) ?></span>
                                             <span class="edit-mode" style="display:none;">$</span>
                                             <input type="number" class="edit-mode" name="menu[<?= $id ?>][price]"
-                                                value="<?= $item['price'] ?>" style="display:none; width:80px; font-weight:bold; color:#2c3e50;">
+                                                value="<?= $item['price'] ?>"
+                                                style="display:none; width:80px; font-weight:bold; color:#2c3e50;">
                                         </div>
                                     </div>
 
-                                    <div class="menu-img-box">
-                                        <i class="bi bi-cup-hot"></i>
+                                    <div class="menu-img-box" style="overflow:hidden; position:relative;">
+
+                                        <img id="preview-<?= $id ?>"
+                                            src="<?= !empty($item['img_id']) ? 'get_image.php?id=' . $item['img_id'] : '' ?>"
+                                            style="width:100%; height:100%; object-fit:cover; display: <?= !empty($item['img_id']) ? 'block' : 'none' ?>;">
+
+                                        <i id="icon-<?= $id ?>" class="bi bi-cup-hot"
+                                            style="display: <?= !empty($item['img_id']) ? 'none' : 'block' ?>;"></i>
+
+                                        <label class="edit-mode upload-overlay" style="display:none;">
+                                            <i class="bi bi-camera-fill"></i> 更換
+                                            <input type="file" style="display:none;" accept="image/*"
+                                                onchange="handleEditImage(this, <?= $id ?>)">
+                                        </label>
+
+                                        <input type="hidden" name="menu[<?= $id ?>][image_base64]" id="base64-<?= $id ?>">
                                     </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
                     <?php endforeach; ?>
-                </form> 
+                </form>
             <?php endif; ?>
         </div>
-        
+
         <div id="addMenuBlock" style="display:none;">
             <h2 style="color:#b35c00; border-bottom:1px solid #ccc; padding-bottom:10px;">新增菜單模式</h2>
             <label>系列名稱</label><br>
@@ -569,33 +631,33 @@ $stmt->close();
                     });
             }
         }
-        
+
         // ★ 刪除單一品項
         function deleteItem(id) {
-            if(!confirm("確定要刪除這個品項嗎？")) return;
+            if (!confirm("確定要刪除這個品項嗎？")) return;
 
             let formData = new FormData();
             formData.append('action', 'delete_item');
             formData.append('menu_id', id);
 
-            fetch('store_menu_delete.php', { 
+            fetch('store_menu_delete.php', {
                 method: 'POST',
                 body: formData
             })
-            .then(res => res.text())
-            .then(res => {
-                alert(res);
-                location.reload();
-            })
-            .catch(err => {
-                console.error(err);
-                alert("發生錯誤，請檢查 Console");
-            });
+                .then(res => res.text())
+                .then(res => {
+                    alert(res);
+                    location.reload();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("發生錯誤，請檢查 Console");
+                });
         }
 
         // ★ 刪除整系列
         function deleteType(typeName) {
-            if(!confirm("警告！這將會刪除「" + typeName + "」系列底下的【所有品項】！\n確定要繼續嗎？")) return;
+            if (!confirm("警告！這將會刪除「" + typeName + "」系列底下的【所有品項】！\n確定要繼續嗎？")) return;
 
             let formData = new FormData();
             formData.append('action', 'delete_type');
@@ -606,16 +668,100 @@ $stmt->close();
                 method: 'POST',
                 body: formData
             })
-            .then(res => res.text())
-            .then(res => {
-                alert(res);
-                location.reload();
-            })
-            .catch(err => {
-                console.error(err);
-                alert("發生錯誤，請檢查 Console");
+                .then(res => res.text())
+                .then(res => {
+                    alert(res);
+                    location.reload();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("發生錯誤，請檢查 Console");
+                });
+        }
+
+        // 1. 新增轉檔工具函式 (放在 script 最前面或 onclick 外面)
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file); // 讀取檔案轉為 Data URL
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
             });
+        }
+
+        // 2. 修改儲存品項的按鈕事件
+        document.getElementById("saveItemBtn").onclick = async function () {
+            // ^ 注意：這裡加上了 async 關鍵字，因為轉檔需要等待
+
+            let fileInput = document.getElementById("itemImgFile");
+            let base64String = ""; // 用來存圖片字串
+
+            // 如果使用者有選圖片，就進行轉檔
+            if (fileInput.files.length > 0) {
+                try {
+                    base64String = await toBase64(fileInput.files[0]);
+                } catch (e) {
+                    alert("圖片處理失敗");
+                    return;
+                }
+            }
+
+            // 建立要存入陣列的物件
+            let item = {
+                name: document.getElementById("itemName").value,
+                description: document.getElementById("itemDesc").value,
+                price: document.getElementById("itemPrice").value,
+                stock: document.getElementById("itemStock").value,
+                note: document.getElementById("itemNote").value,
+                cook_time: document.getElementById("itemCook").value,
+                image_data: base64String // ★ 把轉換好的超長字串存進去
+            };
+
+            // (原本的驗證邏輯)
+            if (!item.name || !item.price) {
+                alert("品項名稱與價格必填！");
+                return;
+            }
+
+            // 加入暫存陣列
+            currentItems.push(item);
+            alert("品項已加入 (含圖片)，請繼續新增或點擊「完成此系列」");
+
+            // 清空欄位
+            document.getElementById("itemName").value = "";
+            document.getElementById("itemDesc").value = "";
+            document.getElementById("itemPrice").value = "";
+            document.getElementById("itemStock").value = "";
+            document.getElementById("itemNote").value = "";
+            document.getElementById("itemCook").value = "";
+            document.getElementById("itemImgFile").value = ""; // ★ 記得清空檔案欄位
+        };
+
+        // ★★★ 處理編輯模式下的圖片選擇 ★★★
+        async function handleEditImage(input, id) {
+            if (input.files && input.files[0]) {
+                let file = input.files[0];
+
+                try {
+                    // 1. 轉成 Base64
+                    let base64 = await toBase64(file);
+
+                    // 2. 存入隱藏欄位 (準備給後端)
+                    document.getElementById('base64-' + id).value = base64;
+
+                    // 3. 即時預覽：隱藏 icon，顯示 img，並更換 src
+                    document.getElementById('icon-' + id).style.display = 'none';
+                    let img = document.getElementById('preview-' + id);
+                    img.style.display = 'block';
+                    img.src = base64; // 直接用 Base64 當作圖片來源預覽
+
+                } catch (e) {
+                    alert("圖片處理錯誤");
+                    console.error(e);
+                }
+            }
         }
     </script>
 </body>
+
 </html>

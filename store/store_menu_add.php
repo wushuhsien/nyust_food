@@ -2,6 +2,7 @@
 header("Content-Type: text/plain; charset=utf-8");
 session_start();
 include "../db.php";
+include "../db_mongo.php"; // 確保這裡面建立了 MongoDB 連線，例如 $manager
 
 $loginAccount = $_SESSION['user'] ?? '';
 if ($loginAccount == "") {
@@ -25,15 +26,14 @@ if ($action === "add_menu_series") {
     $items = $data["items"] ?? [];
 
     if ($type === "" || empty($items)) {
-        echo "資料不足（系列名稱 + 至少一個品項）";
+        echo "資料不足";
         exit;
     }
 
-    // 準備 SQL
-    // 注意：欄位名稱要與您的資料庫完全一致
+    // 準備 MySQL SQL (多了一個 img_id 欄位)
     $stmt2 = $link->prepare("
-        INSERT INTO menu (`type`, `name`, `description`, `price`, `stock`, `note`, `cook_time`, `account`)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO menu (`type`, `name`, `description`, `price`, `stock`, `note`, `cook_time`, `account`, `img_id`)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     if (!$stmt2) {
@@ -42,24 +42,55 @@ if ($action === "add_menu_series") {
     }
 
     foreach ($items as $item) {
-
         $name = $item["name"];
         $desc = $item["description"];
-        $price = intval($item["price"]); // 確保是數字
-        $stock = ($item["stock"] === "") ? 0 : intval($item["stock"]); // 確保是數字
+        $price = intval($item["price"]);
+        $stock = ($item["stock"] === "") ? 0 : intval($item["stock"]);
         $note  = $item["note"];
-        
-        // 處理時間格式：前端傳來的是分鐘數 (例如 "15")，但資料庫是 time 格式
-        // 建議轉換成 HH:MM:SS 格式，否則 MySQL 可能會存成 00:00:15 (15秒)
         $cookInput = intval($item["cook_time"]);
-        // 簡單轉換：假設輸入是分鐘，轉成 00:XX:00
-        $cook = sprintf("00:%02d:00", $cookInput); 
+        $cook = sprintf("00:%02d:00", $cookInput);
+        
+        // --- NoSQL 圖片處理開始 ---
+        $img_id_str = null; // 預設為 null
 
-        // 修正重點：加上第一個參數 "sssiisss"
-        // s = string (字串), i = integer (整數)
-        // 對應順序：type(s), name(s), description(s), price(i), stock(i), note(s), cook_time(s), account(s)
+        // 檢查是否有圖片資料 (Base64字串)
+        if (!empty($item['image_data'])) {
+            try {
+                // 1. 建立 MongoDB BulkWrite 物件
+                $bulk = new MongoDB\Driver\BulkWrite;
+                
+                // 2. 產生一個新的 ObjectId
+                $mongoId = new MongoDB\BSON\ObjectId();
+                
+                // 3. 準備要寫入 NoSQL 的文件
+                $doc = [
+                    '_id' => $mongoId,
+                    'account' => $loginAccount,
+                    'menu_name' => $name,
+                    'image_base64' => $item['image_data'], // 存入前端傳來的 Base64
+                    'created_at' => new MongoDB\BSON\UTCDateTime()
+                ];
+                
+                // 4. 加入插入佇列
+                $bulk->insert($doc);
+                
+                // 5. 執行寫入 (假設資料庫叫 'store_db'，集合叫 'menu_images')
+                // 請根據你的 db_mongo.php 設定修改 db 名稱
+                $manager->executeBulkWrite('store_db.menu_images', $bulk);
+                
+                // 6. 取得 ID 字串，準備存入 MySQL
+                $img_id_str = (string)$mongoId;
+
+            } catch (Exception $e) {
+                // 圖片上傳失敗不應阻擋文字存檔，但可以記錄 log
+                // error_log("MongoDB Error: " . $e->getMessage());
+            }
+        }
+        // --- NoSQL 圖片處理結束 ---
+
+        // 綁定參數 (注意多了最後一個 s 對應 img_id)
         $stmt2->bind_param(
-            "sssiisss", 
+            "sssiissss", // 9個參數
             $type,
             $name,
             $desc,
@@ -67,7 +98,8 @@ if ($action === "add_menu_series") {
             $stock,
             $note,
             $cook,
-            $loginAccount
+            $loginAccount,
+            $img_id_str // 存入 MongoDB 的 ID
         );
 
         if (!$stmt2->execute()) {
@@ -78,11 +110,7 @@ if ($action === "add_menu_series") {
     }
 
     $stmt2->close();
-
     echo "系列與品項新增成功！";
     exit;
 }
-
-echo "未知動作";
-exit;
 ?>
