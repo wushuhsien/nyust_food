@@ -842,7 +842,7 @@ if (isset($_POST['add_store'])) {
                     $i = 1;
 
                     foreach ($stores as $row) {
-                ?>
+                        ?>
                         <tr>
                             <td style="text-align:center"><?= $i++ ?></td>
                             <td><?= $row['account'] ?></td>
@@ -877,7 +877,8 @@ if (isset($_POST['add_store'])) {
                             </td>
 
                             <td>
-                                <select name="permission" class="select-style perm-select" style="width: 150px;" data-account="<?= $row['account'] ?>" id="perm_<?= $row['account'] ?>">
+                                <select name="permission" class="select-style perm-select" style="width: 150px;"
+                                    data-account="<?= $row['account'] ?>" id="perm_<?= $row['account'] ?>">
                                     <option value="0" <?= ($row['permission'] == 0 ? 'selected' : '') ?>>啟用</option>
                                     <option value="1" <?= ($row['permission'] == 1 ? 'selected' : '') ?>>停用</option>
                                 </select>
@@ -894,16 +895,18 @@ if (isset($_POST['add_store'])) {
                                     <div class="btn-group">
                                         <form method="POST" onsubmit="return submitPermissionForm('<?= $row['account'] ?>')">
                                             <input type="hidden" name="account" value="<?= $row['account'] ?>">
-                                            <input type="hidden" name="role" id="role_input_<?= $row['account'] ?>" value="<?= $row['role'] ?>">
-                                            <input type="hidden" name="permission" id="perm_input_<?= $row['account'] ?>" value="<?= $row['permission'] ?>">
-                                            <input type="hidden" name="stop_reason" id="stop_input_<?= $row['account'] ?>" value="<?= htmlspecialchars($row['stop_reason']) ?>" data-current="<?= $row['permission'] ?>">
+                                            <input type="hidden" name="role" id="role_input_<?= $row['account'] ?>"
+                                                value="<?= $row['role'] ?>">
+                                            <input type="hidden" name="permission" id="perm_input_<?= $row['account'] ?>"
+                                                value="<?= $row['permission'] ?>">
+                                            <input type="hidden" name="stop_reason" id="stop_input_<?= $row['account'] ?>"
+                                                value="<?= htmlspecialchars($row['stop_reason']) ?>"
+                                                data-current="<?= $row['permission'] ?>">
                                             <button type="submit" name="update" class="btn-edit">修改</button>
                                         </form>
 
                                         <form method="POST">
-                                            <button type="button"
-                                                class="btn-see"
-                                                onclick='opencheckModal({
+                                            <button type="button" class="btn-see" onclick='opencheckModal({
                                                                         no: "<?= $i - 1 ?>",
                                                                         account: "<?= $row["account"] ?>",
                                                                         store: "<?= addslashes($row["store_name"]) ?>",
@@ -929,13 +932,16 @@ if (isset($_POST['add_store'])) {
 
                                 <div class="btn-group">
                                     <button class="btn-order">歷史訂單</button>
+                                    <button type="button" class="btn-order"
+                                        onclick="location.href='store_material_history.php?account=<?= $row['account'] ?>'">歷史訂單</button>
                                     <button class="btn-rate">評價</button>
                                     <button class="btn-chart">圖表</button>
-                                    <button type="button" class="btn-log" onclick="window.location.href='<?= $row['logUrl'] ?>'">日誌</button>
+                                    <button type="button" class="btn-log"
+                                        onclick="window.location.href='<?= $row['logUrl'] ?>'">日誌</button>
                                 </div>
                             </td>
                         </tr>
-                <?php
+                        <?php
                     }
                 }
                 ?>
@@ -1069,7 +1075,7 @@ if (isset($_POST['add_store'])) {
     }
 
     // 點擊外部關閉
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         const modal = document.getElementById("storeModal");
         if (event.target === modal) {
             closeModal();
@@ -1106,7 +1112,7 @@ if (isset($_POST['add_store'])) {
         const weekName = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
         for (let w = 1; w <= 7; w++) {
             if (data.hours[w]) {
-                hoursText += `${weekName[w-1]}<br>${data.hours[w]}<br><br>`;
+                hoursText += `${weekName[w - 1]}<br>${data.hours[w]}<br><br>`;
             }
         }
 
