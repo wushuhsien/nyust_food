@@ -56,33 +56,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta charset="UTF-8">
     <title>系統問題</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: "Microsoft JhengHei", sans-serif;
-            background: #f5f6fa;
-        }
-
         .container {
-            width: 90%;
-            margin: 30px auto;
-            padding: 20px;
+            width: 95%;
+            margin: 20px auto 0 auto;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         }
 
         h2 {
             text-align: center;
-            margin-bottom: 25px;
-            color: #333;
-            font-size: 26px;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 20px auto -20px auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            min-width: 800px;
+            border-radius: 14px;
+            margin-top: 30px;
         }
 
         th,
@@ -94,37 +90,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         th {
-            background: #2ecc71;
+            background: #C19A6B;
             color: white;
             font-weight: 600;
         }
 
         tr:hover {
-            background: #f1f1f1;
+            background: #f5f0eb;
         }
 
         .status {
-            padding: 6px 10px;
-            border-radius: 6px;
-            color: white;
-            font-size: 14px;
-        }
-
-        .s1 {
-            /* 未處理 */
-            background: #e74c3c;
-        }
-
-
-        .s2 {
-            /* 處理中 */
-            background: #f39c12;
-        }
-
-
-        .s3 {
-            /* 已完成 */
-            background: #27ae60;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
 
         /* 彈跳視窗背景 */
@@ -169,11 +147,41 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .btn-nav {
             cursor: pointer;
             padding: 10px 12px;
-            background: #2ecc71;
+            background: #C19A6B;
             border-radius: 8px;
             color: white;
             margin: 10px;
             font-size: 14px;
+        }
+
+        .search {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            background-color: #C19A6B;
+        }
+
+        .search:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
+        }
+
+        .edit-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            background-color: #6F4E37;
+        }
+
+        .edit-btn:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -223,11 +231,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             break;
                         }
                     }
-                    $imgBtn = !empty($images) ? "<button onclick='showImages(" . htmlspecialchars(json_encode($images), ENT_QUOTES) . ")'>查看</button>" : "";
+                    $imgBtn = !empty($images) ? "<button class='search' onclick='showImages(" . htmlspecialchars(json_encode($images), ENT_QUOTES) . ")'>查看</button>" : "";
 
                     // 狀態下拉選單
                     $statusOptions = ["未處理", "處理中", "已完成"];
-                    $statusSelect = "<select name='status'>";
+                    $statusSelect = "<select name='status' class='status'>";
                     foreach ($statusOptions as $status) {
                         $selected = ($row['status'] === $status) ? "selected" : "";
                         $statusSelect .= "<option value='{$status}' $selected>{$status}</option>";
@@ -248,7 +256,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             <td>                    
                                 <input type='hidden' name='report_id' value='{$row['report_id']}'>
                                     <input type='hidden' name='action' value='update'>
-                                    <button type='submit' class='action-btn update-btn'>修改</button>
+                                    <button type='submit' class='edit-btn'>修改</button>
                                 </form>
                             </td>
                         </tr>";

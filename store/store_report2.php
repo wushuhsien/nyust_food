@@ -63,13 +63,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta charset="UTF-8">
     <title>店家被投訴歷史紀錄</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: "Microsoft JhengHei", sans-serif;
-            background: #f5f6fa;
-        }
-
         .container {
             width: 90%;
             margin: 30px auto;
@@ -101,13 +94,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         th {
-            background: #2ecc71;
-            color: white;
+            background: #d17a22;
+            color: #fff8f0;
             font-weight: 600;
         }
 
         tr:hover {
-            background: #f1f1f1;
+            background: #FFEEDD;
         }
 
         .status {
@@ -176,9 +169,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .btn-nav {
             cursor: pointer;
             padding: 10px 12px;
-            background: #2ecc71;
+            background: #d17a22;
+            color: #fff8f0;
             border-radius: 8px;
-            color: white;
             margin: 10px;
             font-size: 14px;
         }

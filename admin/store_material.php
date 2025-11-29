@@ -639,31 +639,6 @@ if (isset($_POST['add_store'])) {
             background: var(--green-dark);
         }
 
-        .search-box {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-        }
-
-        .search-box input {
-            padding: 8px 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-        }
-
-        .search-box button {
-            padding: 8px 14px;
-            background: var(--blue);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .search-box button:hover {
-            opacity: 0.85;
-        }
-
         .search-row {
             display: flex;
             justify-content: flex-end;
@@ -682,14 +657,15 @@ if (isset($_POST['add_store'])) {
         }
 
         .search-row button {
-            padding: 10px 16px;
+            padding: 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
+            font-size: 15px;
             background: var(--main-brown);
-            color: var(--dark-brown);
-            font-size: 14px;
+            color: white;
             font-weight: 600;
             cursor: pointer;
+            transition: 0.2s;
         }
 
         .search-row button:hover {

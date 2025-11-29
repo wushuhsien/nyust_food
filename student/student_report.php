@@ -89,24 +89,6 @@ if (isset($_POST['add_report'])) {
     <meta charset="UTF-8">
     <title>問題歷史紀錄</title>
     <style>
-        :root {
-            --main-green: #4caf50;
-            --dark-green: #388e3c;
-            --main-brown: #C19A6B;
-            --dark-brown: #5C3D2E;
-            --blue: #1e88e5;
-            --purple: #8e24aa;
-            --orange: #fb8c00;
-            --gray: #6c757d;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: "Microsoft JhengHei", sans-serif;
-            background: #f5f6fa;
-        }
-
         .container {
             width: 90%;
             margin: 30px auto;
@@ -147,7 +129,7 @@ if (isset($_POST['add_report'])) {
             border: none;
             border-radius: 10px;
             font-size: 15px;
-            background: var(--main-brown);
+            background: #0066CC;
             color: white;
             font-weight: 600;
             cursor: pointer;
@@ -155,7 +137,7 @@ if (isset($_POST['add_report'])) {
         }
 
         .add-box button:hover {
-            background: var(--dark-brown);
+            opacity: 0.85;
             transform: scale(1.02);
         }
 
@@ -174,13 +156,13 @@ if (isset($_POST['add_report'])) {
         }
 
         th {
-            background: #2ecc71;
+            background: #0066CC;
             color: white;
             font-weight: 600;
         }
 
         tr:hover {
-            background: #f1f1f1;
+            background: #D2E9FF;
         }
 
         .status {
@@ -205,6 +187,21 @@ if (isset($_POST['add_report'])) {
         .s3 {
             /* 已完成 */
             background: #27ae60;
+        }
+
+        .search {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            background-color: #0080FF;
+        }
+
+        .search:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
         }
 
         /* 彈跳視窗背景 */
@@ -249,7 +246,7 @@ if (isset($_POST['add_report'])) {
         .btn-nav {
             cursor: pointer;
             padding: 10px 12px;
-            background: #2ecc71;
+            background: #0066CC;
             border-radius: 8px;
             color: white;
             margin: 10px;
@@ -325,7 +322,7 @@ if (isset($_POST['add_report'])) {
 
                     if (!empty($images)) {
                         $imgJson = htmlspecialchars(json_encode($images), ENT_QUOTES);
-                        $btn = "<button onclick='showImages($imgJson)'>查看</button>";
+                        $btn = "<button class='search' onclick='showImages($imgJson)'>查看</button>";
                     } else {
                         $btn = "";
                     }
