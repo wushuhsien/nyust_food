@@ -713,7 +713,15 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                                             <?php else: ?>
                                                 <span class="sold-out-text">已售完</span>
                                             <?php endif; ?>
-                                            <div class="menu-img-box"><i class="bi bi-cup-hot"></i></div>
+                                            <div class="menu-img-box" style="overflow:hidden; position:relative; padding:0;">
+                                                <?php if (!empty($menu['img_id'])): ?>
+                                                    <img src="../store/get_image.php?id=<?= $menu['img_id'] ?>" 
+                                                        alt="<?= htmlspecialchars($menu['name']) ?>"
+                                                        style="width:100%; height:100%; object-fit:cover; border-radius:8px;">
+                                                <?php else: ?>
+                                                    <i class="bi bi-cup-hot"></i>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
