@@ -374,7 +374,7 @@ if (isset($_POST['add_student'])) {
                                     <hr class="divider">
 
                                     <div class="btn-group">
-                                        <button class="btn-order">歷史訂單</button>
+                                        <button type="button" class="btn-order" onclick="location.href='student_material_history.php?account=<?= htmlspecialchars($row['account']) ?>'">歷史訂單</button>
                                         <button class="btn-rate">評價</button>
                                         <button class="btn-chart">圖表</button>
                                         <button class="btn-log" onclick="window.location.href='<?php echo $logUrl; ?>'">日誌</button>

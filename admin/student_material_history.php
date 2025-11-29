@@ -2,6 +2,7 @@
 session_start();
 include "../db.php"; // 引入資料庫連線
 
+// 接收傳入的學生帳號
 $target_account = $_GET['account'] ?? '';
 
 if (empty($target_account)) {
@@ -9,17 +10,18 @@ if (empty($target_account)) {
     exit;
 }
 
-// 1. 取得店家資訊
-$store_name = $target_account;
-$store_id = 0;
+// 1. 取得學生/教職員的基本資料
+$student_name = $target_account; // 預設顯示帳號
+$student_id = 0;
 
-$stmt = $link->prepare("SELECT store_id, name FROM store WHERE account = ?");
+// 修改：只查詢 student_id 和 name，不需要 nickname
+$stmt = $link->prepare("SELECT student_id, name FROM student WHERE account = ?");
 $stmt->bind_param("s", $target_account);
 $stmt->execute();
 $result = $stmt->get_result();
 if ($row = $result->fetch_assoc()) {
-    $store_name = $row['name'];
-    $store_id = $row['store_id'];
+    $student_name = $row['name']; 
+    // 已移除 nickname 的拼接邏輯
 }
 $stmt->close();
 
@@ -34,7 +36,7 @@ $end_date = $_GET['end_date'] ?? '';
 
 <head>
     <meta charset="UTF-8">
-    <title>歷史訂單 - <?= htmlspecialchars($store_name) ?></title>
+    <title>學生歷史訂單 - <?= htmlspecialchars($student_name) ?></title>
     <style>
         :root {
             --green: #3d9462;
@@ -76,7 +78,7 @@ $end_date = $_GET['end_date'] ?? '';
             margin-bottom: 20px;
         }
 
-        .store-title {
+        .user-title {
             font-size: 1.2em;
             font-weight: bold;
             color: var(--brown-dark);
@@ -231,17 +233,17 @@ $end_date = $_GET['end_date'] ?? '';
     <br>
     <div class="container">
         <div class="info-bar">
-            <div class="store-title">店家：<?= htmlspecialchars($store_name) ?> (<?= htmlspecialchars($target_account) ?>)</div>
+            <div class="user-title">學生/教職員：<?= htmlspecialchars($student_name) ?> (<?= htmlspecialchars($target_account) ?>)</div>
         </div>
 
-        <h2>歷史訂單列表</h2>
+        <h2>個人歷史訂單列表</h2>
 
         <form method="GET" class="search-box">
             <input type="hidden" name="account" value="<?= htmlspecialchars($target_account) ?>">
             
             <div class="search-group">
                 <label>關鍵字：</label>
-                <input type="text" name="search_query" value="<?= htmlspecialchars($search_query) ?>" placeholder="訂單編號 或 訂購人姓名">
+                <input type="text" name="search_query" value="<?= htmlspecialchars($search_query) ?>" placeholder="訂單編號 或 店家名稱">
             </div>
 
             <div class="search-group">
@@ -252,18 +254,19 @@ $end_date = $_GET['end_date'] ?? '';
             </div>
 
             <button type="submit" class="btn-search">搜尋</button>
-            <a href="store_material_history.php?account=<?= htmlspecialchars($target_account) ?>" class="btn-reset">清除條件</a>
+            <a href="student_material_history.php?account=<?= htmlspecialchars($target_account) ?>" class="btn-reset">清除條件</a>
         </form>
 
         <table>
             <thead>
                 <tr>
                     <th>訂單編號</th>
-                    <th>訂購人</th>
+                    <th>訂購店家</th> 
                     <th>預計取餐時間</th>
                     <th>實際取餐時間</th>
                     <th>付款方式</th>
-                    <th>備註</th> <th>總金額</th>
+                    <th>備註</th>
+                    <th>總金額</th>
                     <th>狀態</th>
                     <th>操作</th>
                 </tr>
@@ -272,59 +275,43 @@ $end_date = $_GET['end_date'] ?? '';
                 <?php
                 // --- SQL 查詢與動態條件組合 ---
                 
-                // 基礎 SQL 片段
-                $sql_base = "";
-                $params = [];
-                $types = "";
+                // 基礎 SQL：
+                // 1. 查詢該學生的訂單 (o.account = ?)
+                // 2. 透過 orderitem -> menu -> store 找出是跟哪家店買的
+                // 3. 取得店家名稱 (st.name)
+                $sql_base = "
+                    SELECT 
+                        o.order_id, 
+                        o.estimate_time, 
+                        o.pick_time, 
+                        o.payment, 
+                        o.status,
+                        o.note,
+                        st.name AS store_name,
+                        st.account AS store_account,
+                        SUM(oi.quantity * m.price) as total_price
+                    FROM `order` o
+                    JOIN `orderitem` oi ON o.order_id = oi.order_id
+                    JOIN `menu` m ON oi.menu_id = m.menu_id
+                    JOIN `store` st ON m.account = st.account  /* 關聯店家資料表 */
+                    WHERE o.account = ? 
+                ";
 
-                if ($store_id > 0) {
-                    // 店家模式
-                    $sql_base = "
-                        SELECT 
-                            o.order_id, 
-                            o.account AS student_account,
-                            s_acc.name AS student_name,
-                            o.estimate_time, 
-                            o.pick_time, 
-                            o.payment, 
-                            o.status,
-                            o.note,  /* 新增：選取備註 */
-                            SUM(oi.quantity * m.price) as total_price
-                        FROM `order` o
-                        JOIN `orderitem` oi ON o.order_id = oi.order_id
-                        JOIN `menu` m ON oi.menu_id = m.menu_id
-                        LEFT JOIN `student` s_acc ON o.account = s_acc.account
-                        WHERE m.account = ? 
-                    ";
-                    $types .= "s";
-                    $params[] = $target_account;
-                } else {
-                    // 備用模式 (直接查 user)
-                    $sql_base = "
-                        SELECT o.*, o.note, '未知總額' as total_price, s.name as student_name 
-                        FROM `order` o 
-                        LEFT JOIN student s ON o.account = s.account
-                        WHERE o.account = ? 
-                    ";
-                    $types .= "s";
-                    $params[] = $target_account;
-                }
+                $types = "s";
+                $params = [$target_account];
 
                 // --- 動態加入篩選條件 ---
                 
-                // 1. 搜尋 (訂單編號 OR 訂購人姓名)
+                // 1. 搜尋 (訂單編號 OR 店家名稱)
                 if (!empty($search_query)) {
-                    // 注意：因為有 JOIN，需明確指定欄位來源
-                    // 店家模式下有 s_acc，備用模式下有 s
-                    $alias = ($store_id > 0) ? "s_acc" : "s";
-                    $sql_base .= " AND (o.order_id LIKE ? OR $alias.name LIKE ?) ";
+                    $sql_base .= " AND (o.order_id LIKE ? OR st.name LIKE ?) ";
                     $types .= "ss";
                     $likeTerm = "%" . $search_query . "%";
                     $params[] = $likeTerm;
                     $params[] = $likeTerm;
                 }
 
-                // 2. 日期區間 (使用 estimate_time 作為篩選基準)
+                // 2. 日期區間
                 if (!empty($start_date)) {
                     $sql_base .= " AND o.estimate_time >= ? ";
                     $types .= "s";
@@ -338,16 +325,12 @@ $end_date = $_GET['end_date'] ?? '';
                 }
 
                 // --- 結尾 GROUP BY 與 ORDER BY ---
-                if ($store_id > 0) {
-                    $sql_base .= " GROUP BY o.order_id ";
-                }
-                $sql_base .= " ORDER BY o.estimate_time DESC";
-
+                // 必須 GROUP BY order_id 才能正確計算 SUM(price)
+                $sql_base .= " GROUP BY o.order_id ORDER BY o.estimate_time DESC";
 
                 // --- 執行查詢 ---
                 $stmt = $link->prepare($sql_base);
                 
-                // 動態綁定參數 (使用 ...拆包運算子，PHP 5.6+)
                 if (!empty($params)) {
                     $stmt->bind_param($types, ...$params);
                 }
@@ -363,15 +346,13 @@ $end_date = $_GET['end_date'] ?? '';
                         elseif (strpos($row['status'], '已') !== false) $statusClass .= ' status-done';
                         else $statusClass .= ' status-cancel';
 
-                        $stuName = $row['student_name'] ?? $row['student_account'];
-                        // 處理備註顯示，如果是 NULL 則顯示 --
+                        // 處理備註顯示
                         $orderNote = !empty($row['note']) ? htmlspecialchars($row['note']) : '<span style="color:#ccc">--</span>';
                         ?>
                         <tr>
                             <td>#<?= $row['order_id'] ?></td>
                             <td>
-                                <strong><?= htmlspecialchars($stuName) ?></strong><br>
-                                <small style="color:#888"><?= $row['student_account'] ?></small>
+                                <strong><?= htmlspecialchars($row['store_name']) ?></strong>
                             </td>
                             <td><?= $row['estimate_time'] ?></td>
                             <td><?= $row['pick_time'] ?? '--' ?></td>
@@ -389,11 +370,11 @@ $end_date = $_GET['end_date'] ?? '';
                         </tr>
 
                         <tr id="detail-<?= $row['order_id'] ?>" class="detail-row">
-                            <td colspan="9"> <div class="detail-box">
-                                    <strong>訂單內容：</strong><br>
+                            <td colspan="9">
+                                <div class="detail-box">
+                                    <strong>購買內容：</strong><br>
                                     <?php
                                     $oid = $row['order_id'];
-                                    // 查詢詳細餐點
                                     $sql_items = "
                                         SELECT m.name, oi.quantity, oi.note, m.price 
                                         FROM orderitem oi 

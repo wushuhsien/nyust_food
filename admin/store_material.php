@@ -931,7 +931,6 @@ if (isset($_POST['add_store'])) {
                                 <hr class="divider"> <!-- 分隔線 -->
 
                                 <div class="btn-group">
-                                    <button class="btn-order">歷史訂單</button>
                                     <button type="button" class="btn-order"
                                         onclick="location.href='store_material_history.php?account=<?= $row['account'] ?>'">歷史訂單</button>
                                     <button class="btn-rate">評價</button>
