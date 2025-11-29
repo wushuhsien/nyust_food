@@ -41,21 +41,17 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
 // 2. 處理單一店家結帳送出
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
     
-    // 接收該店家的資訊
-    $target_store_account = $_POST['store_account']; // 店家帳號
-    $user_pick_time = $_POST['pick_time'];           // 使用者選的時間
-    $user_note = $_POST['note'];                     // 備註
+    $target_store_account = $_POST['store_account'];
+    $user_pick_time = $_POST['pick_time'];
+    $user_note = $_POST['note'];
     
-    // 再次確認購物車有東西
     if (empty($_SESSION['cart'])) {
         echo "<script>alert('購物車是空的');</script>";
     } else {
         $link->begin_transaction();
         try {
-            // 2-1. 找出購物車內屬於「這家店」的所有商品 ID
+            // 2-1. 找出購物車內商品
             $cart_ids = implode(',', array_keys($_SESSION['cart']));
-            
-            // 撈取屬於該店家的品項
             $sql = "SELECT m.* FROM menu m WHERE m.menu_id IN ($cart_ids) AND m.account = ?";
             $stmt = $link->prepare($sql);
             $stmt->bind_param("s", $target_store_account);
@@ -65,16 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
             $items_to_order = [];
             $max_cook_seconds = 0;
 
-            // 整理要下單的商品並計算時間
             while ($row = $result->fetch_assoc()) {
                 $m_id = $row['menu_id'];
                 $qty = $_SESSION['cart'][$m_id];
-                
-                // 存入陣列待會寫入 orderitem
                 $row['buy_qty'] = $qty; 
                 $items_to_order[] = $row;
 
-                // 計算最大烹煮時間
                 $time_parts = explode(':', $row['cook_time']);
                 $seconds = ($time_parts[0] * 3600) + ($time_parts[1] * 60) + $time_parts[2];
                 if ($seconds > $max_cook_seconds) {
@@ -87,50 +79,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                 throw new Exception("找不到該店家的商品，可能已被移除");
             }
 
-            // ★ 修改重點：撈取該店家的「今日營業時間」以計算正確的基準時間
+            // ★ 後端邏輯：撈取該店家的「今日營業時間」&「打烊時間」
             $current_weekday = date('w');
-            $sql_hours = "SELECT open_time FROM storehours WHERE account = ? AND weekday = ?";
+            // 多撈取 close_time
+            $sql_hours = "SELECT open_time, close_time FROM storehours WHERE account = ? AND weekday = ?";
             $stmt_hours = $link->prepare($sql_hours);
             $stmt_hours->bind_param("si", $target_store_account, $current_weekday);
             $stmt_hours->execute();
             $res_hours = $stmt_hours->get_result();
             
-            $today_open_time_str = "00:00:00"; // 預設值
+            $today_open_time_str = "00:00:00"; 
+            $today_close_time_str = "23:59:59"; // 預設打烊時間
+            
             if ($row_h = $res_hours->fetch_assoc()) {
                 $today_open_time_str = $row_h['open_time'];
+                $today_close_time_str = $row_h['close_time'];
             }
             $stmt_hours->close();
 
             // 計算時間戳記
             $today_open_timestamp = strtotime(date('Y-m-d') . ' ' . $today_open_time_str);
+            $today_close_timestamp = strtotime(date('Y-m-d') . ' ' . $today_close_time_str);
             $current_timestamp = time();
 
-            // ★ 核心邏輯：基準時間 = MAX(現在時間, 今日開店時間)
-            // 如果現在 8:45，開店 9:00 -> 基準時間為 9:00
-            // 如果現在 9:10，開店 9:00 -> 基準時間為 9:10
+            // 基準時間 = MAX(現在時間, 今日開店時間)
             $base_timestamp = max($current_timestamp, $today_open_timestamp);
 
-            // 預估系統最快完成時間 = 基準時間 + 製作時間
+            // 預估系統最快完成時間
             $estimate_timestamp = $base_timestamp + $max_cook_seconds;
-            $estimate_time = date('Y-m-d H:i:s', $estimate_timestamp);
-            
             $user_pick_timestamp = strtotime($user_pick_time);
 
-            // 驗證：使用者選的時間不能早於系統計算出的最快完成時間
+            // ★ 驗證 A：取餐時間不能早於系統最快完成時間
             if ($user_pick_timestamp < $estimate_timestamp) {
-                // 為了友善顯示，轉成 HH:mm 格式提示
                 $min_time_str = date('H:i', $estimate_timestamp);
                 echo "<script>
-                    alert('您選擇的取餐時間太早了！\\n依據店家營業時間與製作時間，此訂單最快需於 {$min_time_str} 後才能取餐。\\n請重新選擇時間。');
+                    alert('您選擇的取餐時間太早了！\\n依據店家營業時間與製作時間，此訂單最快需於 {$min_time_str} 後才能取餐。');
                     history.back(); 
                 </script>";
-                exit; // 停止程式，不進行資料庫寫入
+                exit; 
+            }
+
+            // ★ 驗證 B：取餐時間不能晚於打烊時間
+            if ($user_pick_timestamp > $today_close_timestamp) {
+                $close_time_str = date('H:i', $today_close_timestamp);
+                echo "<script>
+                    alert('您選擇的取餐時間已超過店家打烊時間 ({$close_time_str})！\\n請選擇較早的時間或改天訂購。');
+                    history.back(); 
+                </script>";
+                exit;
             }
 
             // 2-3. 寫入 order 主表
-            // 修改：使用 $user_pick_time (使用者選擇的時間) 作為預估時間存入 estimate_time 欄位
-            // 或者你可以維持存入系統計算的 $estimate_time，看你的需求。
-            // 這裡依照上一輪的修正，我們將 estimate_time 欄位存入「使用者選擇的時間」
             $order_sql = "INSERT INTO `order` (estimate_time, status, note, payment, account) 
                           VALUES (?, ?, ?, ?, ?)";
             $status = "等待店家接單";
@@ -145,12 +144,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
             $new_order_id = $link->insert_id;
             $stmt->close();
 
-            // 2-4. 寫入 orderitem 並 ★ 扣除庫存
+            // 2-4. 寫入 orderitem 並扣庫存
             $item_sql = "INSERT INTO orderitem (quantity, note, menu_id, order_id) VALUES (?, ?, ?, ?)";
             $stmt_item = $link->prepare($item_sql);
 
-            // ★ 準備扣庫存的 SQL (庫存 - 數量, 銷量 + 數量)
-            // 加上 AND stock >= ? 確保不會扣到變成負數
             $stock_sql = "UPDATE menu SET stock = stock - ?, sale_amount = sale_amount + ? WHERE menu_id = ? AND stock >= ?";
             $stmt_stock = $link->prepare($stock_sql);
             
@@ -159,20 +156,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                 $menu_id = $item['menu_id'];
                 $item_note = ""; 
 
-                // A. 寫入訂單明細
                 $stmt_item->bind_param("isii", $buy_qty, $item_note, $menu_id, $new_order_id);
                 $stmt_item->execute();
                 
-                // B. ★ 扣除庫存 & 增加銷量
                 $stmt_stock->bind_param("iiii", $buy_qty, $buy_qty, $menu_id, $buy_qty);
                 $stmt_stock->execute();
 
-                // 檢查是否扣除成功 (如果 affected_rows 是 0，代表庫存不足)
                 if ($stmt_stock->affected_rows === 0) {
-                    throw new Exception("商品「" . $item['name'] . "」庫存不足，無法結帳。");
+                    throw new Exception("商品「" . $item['name'] . "」庫存不足。");
                 }
 
-                // C. 從 Session 移除該商品
                 unset($_SESSION['cart'][$menu_id]);
             }
             $stmt_item->close();
@@ -319,12 +312,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
             }
         ?>
 
-        <?php foreach ($grouped_items as $store_account => $items): 
+<?php foreach ($grouped_items as $store_account => $items): 
             $store_name = $items[0]['store_name'];
             $store_total = 0;
             $max_cook_seconds = 0;
             
-            // 計算該店總金額與最大烹煮時間
             foreach($items as $item) {
                 $store_total += $item['subtotal'];
                 $time_parts = explode(':', $item['cook_time']);
@@ -332,30 +324,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                 if ($seconds > $max_cook_seconds) $max_cook_seconds = $seconds;
             }
 
-            // ★ 修改重點：撈取該店家的「今日營業時間」
-            // 目的是為了讓前端 input 預設值顯示「MAX(現在, 開店) + 製作時間」
+            // ★ 前端顯示計算：撈取該店家的開店與打烊時間
             $current_weekday = date('w');
-            $sql_h = "SELECT open_time FROM storehours WHERE account = ? AND weekday = ?";
+            // 多撈 close_time
+            $sql_h = "SELECT open_time, close_time FROM storehours WHERE account = ? AND weekday = ?";
             $stmt_h = $link->prepare($sql_h);
             $stmt_h->bind_param("si", $store_account, $current_weekday);
             $stmt_h->execute();
             $res_h = $stmt_h->get_result();
             
-            $today_open_ts = time(); // 預設值為現在
+            $today_open_ts = time(); 
+            $today_close_ts = strtotime(date('Y-m-d') . ' 23:59:59'); // 預設打烊時間
+            
             if($row_h = $res_h->fetch_assoc()){
-                // 將店家今天的 open_time 轉為 Timestamp
                 $today_open_ts = strtotime(date('Y-m-d').' '.$row_h['open_time']);
+                $today_close_ts = strtotime(date('Y-m-d').' '.$row_h['close_time']);
             }
             $stmt_h->close();
 
-            // 計算基準時間：如果現在還沒開門，就從開門時間算起
+            // ★ 基準時間 = MAX(現在, 開店)
             $base_ts = max(time(), $today_open_ts);
             
-            // 預計完成時間 = 基準時間 + 製作時間
+            // 預計完成時間
             $final_predict_ts = $base_ts + $max_cook_seconds;
 
             $suggested_time_str = date('Y-m-d\TH:i', $final_predict_ts);
             $display_time_hint = date('H:i', $final_predict_ts);
+            $close_time_hint = date('H:i', $today_close_ts);
+
+            // ★ 檢查是否已超過打烊時間
+            $is_over_close_time = ($final_predict_ts > $today_close_ts);
         ?>
             
             <form method="POST" action="student_cart.php">
@@ -364,6 +362,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                 <div class="store-card">
                     <div class="store-title-bar">
                         <i class="bi bi-shop-window"></i> <?= htmlspecialchars($store_name) ?>
+                        <?php if($is_over_close_time): ?>
+                            <span style="color:red; font-size:14px; margin-left:10px;">(已過接單時間)</span>
+                        <?php endif; ?>
                     </div>
 
                     <div>
@@ -401,12 +402,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                                     <i class="bi bi-clock"></i> 取餐時間 (需 <?= ceil($max_cook_seconds/60) ?> 分鐘)
                                 </label>
                                 <input type="datetime-local" 
-                                       id="pick_time_<?= $store_account ?>" 
-                                       name="pick_time" 
-                                       value="<?= $suggested_time_str ?>" 
-                                       min="<?= date('Y-m-d\TH:i') ?>"
-                                       required>
-                                <small style="color: #e74c3c;">* 系統建議 <?= $display_time_hint ?> 後取餐</small>
+                                    id="pick_time_<?= $store_account ?>" 
+                                    name="pick_time" 
+                                    value="<?= $suggested_time_str ?>" 
+                                    
+                                    min="<?= $suggested_time_str ?>"
+                                    
+                                    max="<?= date('Y-m-d\TH:i', $today_close_ts) ?>"
+                                    required
+                                    <?= $is_over_close_time ? 'disabled' : '' ?> >
+                                
+                                <small style="color: #e74c3c;">* 系統建議 <?= $display_time_hint ?> 後取餐</small><br>
+                                <small style="color: #555;">(打烊時間：<?= $close_time_hint ?>)</small>
                             </div>
                             
                             <div class="form-group">
@@ -414,13 +421,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
                                 <input type="text" 
                                        id="note_<?= $store_account ?>" 
                                        name="note" 
-                                       placeholder="例：不要香菜、去冰">
+                                       placeholder="例：不要香菜、去冰"
+                                       <?= $is_over_close_time ? 'disabled' : '' ?> >
                             </div>
                         </div>
 
-                        <button type="submit" name="checkout_store" class="checkout-btn">
-                            送出 <?= htmlspecialchars($store_name) ?> 的訂單 <i class="bi bi-arrow-right-circle"></i>
-                        </button>
+                        <?php if ($is_over_close_time): ?>
+                            <div class="error-msg">
+                                <i class="bi bi-exclamation-triangle"></i> 預計完成時間已超過打烊時間，無法送出訂單。
+                            </div>
+                            <button type="button" class="checkout-btn" disabled>
+                                無法送出
+                            </button>
+                        <?php else: ?>
+                            <button type="submit" name="checkout_store" class="checkout-btn">
+                                送出 <?= htmlspecialchars($store_name) ?> 的訂單 <i class="bi bi-arrow-right-circle"></i>
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
             </form>
