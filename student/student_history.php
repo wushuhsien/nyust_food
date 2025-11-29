@@ -11,21 +11,55 @@ if (!$account) {
 // 設定時區
 date_default_timezone_set("Asia/Taipei");
 
+// ==========================================
+// 處理評論提交
+// ==========================================
+if (isset($_POST['submit_review'])) {
+    $review_oid = $_POST['order_id'];
+    $review_rate = $_POST['rate'];
+    $review_desc = trim($_POST['description']);
+    $review_time = date("Y-m-d H:i:s");
+
+    $check_stmt = $link->prepare("SELECT mealreview_id FROM mealreview WHERE order_id = ?");
+    $check_stmt->bind_param("i", $review_oid);
+    $check_stmt->execute();
+    $check_stmt->store_result();
+    
+    if ($check_stmt->num_rows > 0) {
+        echo "<script>alert('此訂單已經評論過囉！'); history.back();</script>";
+    } else {
+        $ins_stmt = $link->prepare("INSERT INTO mealreview (description, time, rate, order_id) VALUES (?, ?, ?, ?)");
+        $ins_stmt->bind_param("ssii", $review_desc, $review_time, $review_rate, $review_oid);
+        
+        if ($ins_stmt->execute()) {
+            echo "<script>alert('評論已送出！'); window.location.href='student_history.php';</script>";
+        } else {
+            echo "<script>alert('評論失敗，請稍後再試');</script>";
+        }
+        $ins_stmt->close();
+    }
+    $check_stmt->close();
+}
+// ==========================================
+
 // 1. 處理篩選參數
 $search_query = isset($_GET['q']) ? trim($_GET['q']) : '';
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : '';
+// ★ 新增：接收評價篩選參數
+$rating_filter = isset($_GET['rating']) ? $_GET['rating'] : ''; 
 
 // 2. 準備 SQL 查詢
 
 // 步驟 A: 先找出符合搜尋條件的 order_id 列表
-// 這裡我們只查 ID，目的是篩選出「哪幾張單」符合條件
+// ★ 修改：在這裡就要 LEFT JOIN mealreview，才能針對評價進行篩選
 $id_sql = "
     SELECT DISTINCT o.order_id
     FROM `order` o
     JOIN `orderitem` oi ON o.order_id = oi.order_id
     JOIN `menu` m ON oi.menu_id = m.menu_id
     JOIN `store` s ON m.account = s.account
+    LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id  /* ★ 加入關聯以便篩選 */
     WHERE o.account = ? 
     AND o.status IN ('已取餐', '已取消', '商家拒單')
 ";
@@ -33,7 +67,7 @@ $id_sql = "
 $id_params = [$account];
 $id_types = "s";
 
-// 加入關鍵字搜尋 (店家名稱 OR 菜單名稱)
+// 關鍵字搜尋
 if (!empty($search_query)) {
     $id_sql .= " AND (s.name LIKE ? OR m.name LIKE ?)";
     $term = "%" . $search_query . "%";
@@ -42,7 +76,7 @@ if (!empty($search_query)) {
     $id_types .= "ss";
 }
 
-// 加入日期篩選
+// 日期篩選
 if (!empty($start_date)) {
     $id_sql .= " AND DATE(o.estimate_time) >= ?";
     $id_params[] = $start_date;
@@ -52,6 +86,19 @@ if (!empty($end_date)) {
     $id_sql .= " AND DATE(o.estimate_time) <= ?";
     $id_params[] = $end_date;
     $id_types .= "s";
+}
+
+// ★ 新增：評價篩選邏輯
+if ($rating_filter !== '') {
+    if ($rating_filter === 'unrated') {
+        // 篩選尚未評價 (rate 為 NULL)
+        $id_sql .= " AND mr.rate IS NULL";
+    } else {
+        // 篩選特定星數 (1~5)
+        $id_sql .= " AND mr.rate = ?";
+        $id_params[] = $rating_filter;
+        $id_types .= "i";
+    }
 }
 
 $id_stmt = $link->prepare($id_sql);
@@ -65,15 +112,12 @@ while ($row = $id_result->fetch_assoc()) {
 }
 $id_stmt->close();
 
-// 步驟 B: 如果有找到符合的訂單 ID，再撈出這些訂單的「完整」細項
+// 步驟 B: 撈出完整細項
 $history_orders = [];
 
 if (!empty($target_order_ids)) {
-    // 建立動態的問號佔位符，例如 (?,?,?)
     $placeholders = implode(',', array_fill(0, count($target_order_ids), '?'));
     
-    // ★ 關鍵：這裡只用 order_id 來撈資料，不加 menu.name 篩選
-    // 這樣才能把同一張單裡的「其他餐點」也一起撈出來
     $sql = "
         SELECT 
             o.order_id, 
@@ -85,23 +129,24 @@ if (!empty($target_order_ids)) {
             m.name AS menu_name,
             m.price,
             oi.quantity,
-            oi.note AS item_note
+            oi.note AS item_note,
+            mr.rate AS review_rate,        
+            mr.description AS review_desc   
         FROM `order` o
         JOIN `orderitem` oi ON o.order_id = oi.order_id
         JOIN `menu` m ON oi.menu_id = m.menu_id
         JOIN `store` s ON m.account = s.account
+        LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id
         WHERE o.order_id IN ($placeholders)
         ORDER BY o.order_id DESC
     ";
 
-    // 動態綁定參數 (全部都是 integer)
     $stmt = $link->prepare($sql);
     $types = str_repeat('i', count($target_order_ids));
     $stmt->bind_param($types, ...$target_order_ids);
     $stmt->execute();
     $result = $stmt->get_result();
 
-    // 資料整理
     while ($row = $result->fetch_assoc()) {
         $oid = $row['order_id'];
         
@@ -114,7 +159,9 @@ if (!empty($target_order_ids)) {
                 'time' => $display_time, 
                 'order_note' => $row['order_note'],
                 'items' => [],
-                'total_price' => 0
+                'total_price' => 0,
+                'review_rate' => $row['review_rate'], 
+                'review_desc' => $row['review_desc']
             ];
         }
         
@@ -130,7 +177,6 @@ if (!empty($target_order_ids)) {
     $stmt->close();
 }
 
-// ★ 新增：計算統計數據 (只計算「已取餐」的訂單)
 $total_completed_count = 0;
 $total_spend = 0;
 
@@ -150,41 +196,18 @@ foreach ($history_orders as $order) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         body { font-family: "Microsoft JhengHei", Arial, sans-serif; background: #f2f6fc; margin: 20px; }
-        
         .history-wrapper { max-width: 900px; margin: 0 auto; }
+        .history-header { background: #6c757d; color: white; padding: 20px; border-radius: 10px 10px 0 0; font-size: 24px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
         
-        .history-header {
-            background: #6c757d; color: white; padding: 20px; border-radius: 10px 10px 0 0;
-            font-size: 24px; font-weight: bold; display: flex; align-items: center; gap: 10px;
-        }
-
-        /* 搜尋區塊樣式 */
-        .search-section {
-            background: white; padding: 15px; border-bottom: 1px solid #eee;
-        }
-        
-        .search-bar {
-            display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-        }
-        .search-bar input { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
-        .search-btn {
-            background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;
-        }
+        .search-section { background: white; padding: 15px; border-bottom: 1px solid #eee; }
+        .search-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .search-bar input, .search-bar select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; } /* 新增 select 樣式 */
+        .search-btn { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
         .search-btn:hover { background: #5a6268; }
         .reset-link { color: #dc3545; text-decoration: none; font-size: 14px; margin-left: 5px; }
 
-        /* ★ 新增：統計區塊樣式 */
-        .stats-container {
-            display: flex; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;
-        }
-        .stat-box {
-            flex: 1;
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 10px 15px;
-            text-align: center;
-        }
+        .stats-container { display: flex; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; }
+        .stat-box { flex: 1; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px 15px; text-align: center; }
         .stat-title { font-size: 13px; color: #666; margin-bottom: 5px; }
         .stat-value { font-size: 20px; font-weight: bold; color: #333; }
         .text-money { color: #d63384; }
@@ -192,12 +215,8 @@ foreach ($history_orders as $order) {
         .order-card { background: white; border-bottom: 1px solid #eee; margin-bottom: 0; }
         .order-card:last-child { border-radius: 0 0 10px 10px; }
 
-        /* Accordion Style */
         details { width: 100%; border-bottom: 1px solid #eee; }
-        summary {
-            padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-            list-style: none; background-color: #fff; transition: 0.2s;
-        }
+        summary { padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; background-color: #fff; transition: 0.2s; }
         summary:hover { background-color: #f8f9fa; }
         summary::-webkit-details-marker { display: none; }
         summary::after { content: '\F282'; font-family: 'bootstrap-icons'; transition: 0.3s; color: #999; }
@@ -216,8 +235,22 @@ foreach ($history_orders as $order) {
         .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ddd; font-size: 15px; color: #555; }
         .item-row:last-child { border-bottom: none; }
         .total-row { text-align: right; margin-top: 15px; font-weight: bold; font-size: 18px; color: #333; }
-
         .empty-history { text-align: center; padding: 50px; color: #999; background: white; border-radius: 0 0 10px 10px; }
+
+        .review-section { margin-top: 20px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; }
+        .review-title { font-weight: bold; margin-bottom: 10px; color: #495057; border-bottom: 2px solid #ffc107; display: inline-block; padding-bottom: 3px; }
+        
+        .star-rating { font-size: 24px; color: #ddd; cursor: pointer; display: inline-block; }
+        .star-rating .bi-star-fill { color: #ffc107; } 
+        .star-rating .bi-star { color: #ccc; }      
+        
+        .review-textarea { width: 100%; height: 60px; padding: 8px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; resize: none; font-family: inherit; }
+        .btn-submit-review { background: #28a745; color: white; border: none; padding: 8px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer; font-weight: bold; }
+        .btn-submit-review:hover { background: #218838; }
+
+        .reviewed-box { background: #fff8e1; border: 1px solid #ffeeba; padding: 10px; border-radius: 8px; margin-top: 15px; }
+        .reviewed-stars { color: #ffc107; font-size: 18px; }
+        .reviewed-text { color: #555; margin-top: 5px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -241,9 +274,18 @@ foreach ($history_orders as $order) {
                     <span>~</span>
                     <input type="date" name="end_date" value="<?= $end_date ?>">
                     
+                    <select name="rating">
+                        <option value="">所有評價</option>
+                        <option value="unrated" <?= $rating_filter === 'unrated' ? 'selected' : '' ?>>尚未評價</option>
+                        <option value="5" <?= $rating_filter === '5' ? 'selected' : '' ?>>5 顆星</option>
+                        <option value="4" <?= $rating_filter === '4' ? 'selected' : '' ?>>4 顆星</option>
+                        <option value="3" <?= $rating_filter === '3' ? 'selected' : '' ?>>3 顆星</option>
+                        <option value="2" <?= $rating_filter === '2' ? 'selected' : '' ?>>2 顆星</option>
+                        <option value="1" <?= $rating_filter === '1' ? 'selected' : '' ?>>1 顆星</option>
+                    </select>
+
                     <button type="submit" class="search-btn"><i class="bi bi-search"></i> 查詢</button>
-                    
-                    <?php if ($search_query || $start_date || $end_date): ?>
+                    <?php if ($search_query || $start_date || $end_date || $rating_filter): ?>
                         <a href="?" class="reset-link">清除條件</a>
                     <?php endif; ?>
                 </form>
@@ -263,7 +305,7 @@ foreach ($history_orders as $order) {
             <?php if (empty($history_orders)): ?>
                 <div class="empty-history">
                     <i class="bi bi-inbox" style="font-size: 40px; margin-bottom: 10px; display: block;"></i>
-                    <?php if ($search_query || $start_date || $end_date): ?>
+                    <?php if ($search_query || $start_date || $end_date || $rating_filter): ?>
                         查無符合條件的訂單
                     <?php else: ?>
                         尚無歷史訂單紀錄
@@ -279,7 +321,14 @@ foreach ($history_orders as $order) {
                     <details class="order-card">
                         <summary>
                             <div class="order-info">
-                                <div class="store-name"><?= htmlspecialchars($order['store_name']) ?></div>
+                                <div class="store-name">
+                                    <?= htmlspecialchars($order['store_name']) ?>
+                                    <?php if (!empty($order['review_rate'])): ?>
+                                        <span style="font-size:12px; color:#ffc107; margin-left:5px;">
+                                            <i class="bi bi-star-fill"></i> <?= $order['review_rate'] ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                                 <div class="order-meta">
                                     <span><i class="bi bi-calendar3"></i> <?= $date_str ?></span>
                                     <span style="margin-left: 10px;">#<?= $order_id ?></span>
@@ -315,6 +364,48 @@ foreach ($history_orders as $order) {
                             <?php endif; ?>
 
                             <div class="total-row">總計：$<?= $order['total_price'] ?></div>
+
+                            <?php if ($order['status'] == '已取餐'): ?>
+                                
+                                <?php if (!empty($order['review_rate'])): ?>
+                                    <div class="reviewed-box">
+                                        <div class="reviewed-stars">
+                                            <?php 
+                                            for($i=1; $i<=5; $i++) {
+                                                if($i <= $order['review_rate']) echo '<i class="bi bi-star-fill"></i>';
+                                                else echo '<i class="bi bi-star" style="color:#ccc"></i>';
+                                            }
+                                            ?>
+                                            <span style="color:#888; font-size:14px; margin-left:5px;">(已評分)</span>
+                                        </div>
+                                        <div class="reviewed-text">
+                                            <strong>評論：</strong><?= htmlspecialchars($order['review_desc']) ?>
+                                        </div>
+                                    </div>
+
+                                <?php else: ?>
+                                    <div class="review-section">
+                                        <div class="review-title">訂單評價</div>
+                                        <form method="POST" onsubmit="return validateReview(this);">
+                                            <input type="hidden" name="order_id" value="<?= $order_id ?>">
+                                            
+                                            <div class="star-rating" id="star-container-<?= $order_id ?>">
+                                                <i class="bi bi-star star-icon" data-val="1" onclick="setRate(<?= $order_id ?>, 1)"></i>
+                                                <i class="bi bi-star star-icon" data-val="2" onclick="setRate(<?= $order_id ?>, 2)"></i>
+                                                <i class="bi bi-star star-icon" data-val="3" onclick="setRate(<?= $order_id ?>, 3)"></i>
+                                                <i class="bi bi-star star-icon" data-val="4" onclick="setRate(<?= $order_id ?>, 4)"></i>
+                                                <i class="bi bi-star star-icon" data-val="5" onclick="setRate(<?= $order_id ?>, 5)"></i>
+                                            </div>
+                                            <input type="hidden" name="rate" id="rate-input-<?= $order_id ?>" value="0">
+                                            
+                                            <textarea name="description" class="review-textarea" placeholder="寫下您對這餐的評價..." required></textarea>
+                                            <button type="submit" name="submit_review" class="btn-submit-review">送出評論</button>
+                                        </form>
+                                    </div>
+                                <?php endif; ?>
+
+                            <?php endif; ?>
+
                         </div>
                     </details>
                 <?php endforeach; ?>
@@ -322,5 +413,34 @@ foreach ($history_orders as $order) {
         </div>
     </div>
 
+    <script>
+        function setRate(orderId, val) {
+            document.getElementById('rate-input-' + orderId).value = val;
+            const container = document.getElementById('star-container-' + orderId);
+            const stars = container.getElementsByClassName('star-icon');
+            
+            for (let i = 0; i < stars.length; i++) {
+                let starVal = parseInt(stars[i].getAttribute('data-val'));
+                if (starVal <= val) {
+                    stars[i].classList.remove('bi-star');
+                    stars[i].classList.add('bi-star-fill');
+                    stars[i].style.color = '#ffc107';
+                } else {
+                    stars[i].classList.remove('bi-star-fill');
+                    stars[i].classList.add('bi-star');
+                    stars[i].style.color = '#ccc';
+                }
+            }
+        }
+
+        function validateReview(form) {
+            const rateInput = form.querySelector('input[name="rate"]');
+            if (rateInput.value == "0") {
+                alert("請點選星星進行評分！");
+                return false;
+            }
+            return confirm("送出後將無法修改或刪除，確定要送出嗎？");
+        }
+    </script>
 </body>
 </html>

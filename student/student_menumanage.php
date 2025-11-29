@@ -77,6 +77,11 @@ if ($type_filter > 0) {
 // ★ 新增：營業時間篩選邏輯
 // 只有在當前時間有營業的店家才會被撈出來
 $current_weekday = date('w'); // 取得星期幾 (0=週日, 1=週一, ... 6=週六)
+
+if ($current_weekday == 0) {
+    $current_weekday = 7;
+}
+
 $current_time = date('H:i:s'); // 取得目前時間 (HH:mm:ss)
 
 // 注意：如果你的資料庫 weekday 存的是 1-7 (1=週一, 7=週日)，這邊可能需要轉換

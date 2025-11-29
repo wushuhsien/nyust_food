@@ -45,7 +45,7 @@ if (!$account) {
             background-color: #f9fbff;
             max-height: 500px;
             overflow-y: auto;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
 
         .dashboard-title {
@@ -95,15 +95,17 @@ if (!$account) {
             align-items: center;
             list-style: none;
         }
-        
+
         summary::-webkit-details-marker {
             display: none;
         }
+
         summary::after {
             content: '\F282';
             font-family: 'bootstrap-icons';
             transition: 0.3s;
         }
+
         details[open] summary::after {
             transform: rotate(180deg);
         }
@@ -121,6 +123,7 @@ if (!$account) {
             border-bottom: 1px dashed #eee;
             font-size: 14px;
         }
+
         .order-item-row:last-child {
             border-bottom: none;
         }
@@ -146,10 +149,11 @@ if (!$account) {
             margin-top: 10px;
             font-weight: bold;
         }
+
         .btn-order-more:hover {
             background: #357abd;
         }
-        
+
         /* 訂單備註樣式 */
         .order-note-box {
             font-size: 13px;
@@ -160,7 +164,6 @@ if (!$account) {
             border-radius: 5px;
             margin-top: 10px;
         }
-
     </style>
 </head>
 
@@ -168,10 +171,10 @@ if (!$account) {
     <?php include "student_menu.php"; ?>
 
     <div id="b" style="display: grid; grid-template-columns: 1fr 1fr 0.8fr; gap: 20px;">
-        
+
         <div class="dashboard-card">
             <h2 class="dashboard-title"><i class="bi bi-receipt"></i> 進行中的訂單</h2>
-            
+
             <?php
             // ★ 修改 1: 在 SQL 中加入 o.note AS order_note
             // ★ 修改 1: 在 SQL 中加入 o.note AS order_note，並排除 '已取餐'
@@ -204,7 +207,7 @@ if (!$account) {
 
             while ($row = $result->fetch_assoc()) {
                 $oid = $row['order_id'];
-                
+
                 if (!isset($active_orders[$oid])) {
                     $active_orders[$oid] = [
                         'store_name' => $row['store_name'],
@@ -215,20 +218,21 @@ if (!$account) {
                         'total_price' => 0
                     ];
                 }
-                
+
                 $active_orders[$oid]['items'][] = [
                     'name' => $row['menu_name'],
                     'qty' => $row['quantity'],
                     'note' => $row['item_note']
                 ];
-                
+
                 $active_orders[$oid]['total_price'] += ($row['price'] * $row['quantity']);
             }
             $stmt->close();
 
             if (!empty($active_orders)) {
                 foreach ($active_orders as $order_id => $order) {
-                    $time_display = date('H:i', strtotime($order['estimate_time']));
+                    // 修改格式為 'Y/m/d H:i' 以顯示日期
+                    $time_display = date('Y/m/d H:i', strtotime($order['estimate_time']));
                     ?>
                     <div class="order-card">
                         <details>
@@ -243,20 +247,21 @@ if (!$account) {
                                     <i class="bi bi-clock"></i> 預計 <?= $time_display ?>
                                 </div>
                             </summary>
-                            
+
                             <div class="order-content">
                                 <?php foreach ($order['items'] as $item): ?>
                                     <div class="order-item-row">
                                         <span>
-                                            <?= htmlspecialchars($item['name']) ?> 
+                                            <?= htmlspecialchars($item['name']) ?>
                                             <span style="color:#888;">x<?= $item['qty'] ?></span>
-                                            <?php if($item['note']): ?>
-                                                <span style="font-size:12px; color:#e74c3c;">(<?= htmlspecialchars($item['note']) ?>)</span>
+                                            <?php if ($item['note']): ?>
+                                                <span
+                                                    style="font-size:12px; color:#e74c3c;">(<?= htmlspecialchars($item['note']) ?>)</span>
                                             <?php endif; ?>
                                         </span>
                                     </div>
                                 <?php endforeach; ?>
-                                
+
                                 <?php if (!empty($order['order_note'])): ?>
                                     <div class="order-note-box">
                                         <i class="bi bi-pencil-fill"></i> 備註：<?= htmlspecialchars($order['order_note']) ?>
@@ -278,7 +283,7 @@ if (!$account) {
                       </div>';
             }
             ?>
-            
+
             <a href="student_menumanage.php" class="btn-order-more">
                 <i class="bi bi-plus-circle"></i> 前往點餐
             </a>
