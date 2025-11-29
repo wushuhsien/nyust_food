@@ -27,19 +27,7 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 // ----------------------------------------------------
 
-// AJAX 刪除公告處理 (保留您原本的代碼)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
-    $id = intval($_POST['delete_id']);
-    if ($id > 0) {
-        $stmt = $link->prepare("DELETE FROM announcement WHERE announcement_id = ? AND account = ?");
-        $stmt->bind_param("is", $id, $loginAccount);
-        echo $stmt->execute() ? "success" : "刪除失敗";
-        $stmt->close();
-    } else {
-        echo "無效ID";
-    }
-    exit;
-}
+
 ?>
 
 <!DOCTYPE html>
@@ -133,68 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             background-color: #b91c1c;
         }
 
-        /* 查詢表單 */
-        .search-form {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .search-form button {
-            background-color: #f28c28;
-            /* 橘色搜尋按鈕 */
-            color: white;
-            padding: 6px 12px;
-        }
-
-        .search-form button:hover {
-            background-color: #d97706;
-            /* 深橘色 hover */
-        }
-    </style>
-
-    <style>
-        /* --- 原本的樣式 --- */
-        body {
-            font-family: "Microsoft JhengHei", sans-serif;
-            background-color: #fafafa;
-        }
-
-        #b {
-            background-color: #fff7f0;
-            margin: 20px auto;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            max-width: 900px;
-            /* 稍微加寬一點以容納兩欄 */
-            text-align: left;
-            border: 1px solid #f0d4b2;
-        }
-
-        #b h1 {
-            font-size: 24px;
-            margin-top: 0;
-            color: #b35c00;
-        }
-
-        input {
-            padding: 8px 10px;
-            border: 1px solid #f2c79e;
-            border-radius: 8px;
-            width: 60%;
-        }
-
-        button {
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        /* --- 新增：菜單顯示區樣式 --- */
-
-        /* 頂部導覽列 (類似 Tab) */
         .menu-nav {
             display: flex;
             overflow-x: auto;
@@ -317,7 +243,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             font-size: 30px;
             flex-shrink: 0;
         }
+        
+        /* 查詢表單 */
+        .search-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-form button {
+            background-color: #f28c28;
+            /* 橘色搜尋按鈕 */
+            color: white;
+            padding: 6px 12px;
+        }
+
+        .search-form button:hover {
+            background-color: #d97706;
+            /* 深橘色 hover */
+        }
+
+        /* 刪除按鈕樣式 (預設隱藏，編輯模式顯示) */
+        .delete-item-btn {
+            position: absolute; top: 5px; right: 5px; 
+            background: #e74c3c; color: white; 
+            width: 24px; height: 24px; border-radius: 50%; 
+            font-size: 12px; display: none; /* 預設隱藏 */
+            justify-content: center; align-items: center;
+        }
+        .delete-type-btn {
+            background: #c0392b; color: white; padding: 4px 10px; font-size: 14px; display: none; /* 預設隱藏 */
+        }
     </style>
+
 </head>
 
 <body>
@@ -373,8 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     <div id="b">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h1>我的菜單</h1>
-            <button onclick="toggleAddMenu()" id="toggleBtn"
-                style="background:#f28c28; color:white; padding:8px 14px; font-size:14px;">
+            <button onclick="toggleAddMenu()" id="toggleBtn" style="background:#f28c28; color:white; padding:8px 14px; font-size:14px;">
                 編輯菜單
             </button>
         </div>
@@ -385,7 +343,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             <?php else: ?>
 
                 <form id="editMenuForm">
-
                     <div class="menu-nav">
                         <?php foreach ($menuData as $type => $items): ?>
                             <a href="#cat-<?= htmlspecialchars($type) ?>"><?= htmlspecialchars($type) ?></a>
@@ -393,51 +350,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                     </div>
 
                     <?php foreach ($menuData as $type => $items): ?>
-
-                        <div id="cat-<?= htmlspecialchars($type) ?>" class="category-title">
-                            <?= htmlspecialchars($type) ?>
+                        <div class="category-header">
+                            <div id="cat-<?= htmlspecialchars($type) ?>" class="category-title">
+                                <?= htmlspecialchars($type) ?>
+                            </div>
+                            <button type="button" class="delete-type-btn edit-mode" onclick="deleteType('<?= htmlspecialchars($type) ?>')">
+                                <i class="bi bi-trash"></i> 刪除此系列
+                            </button>
                         </div>
 
                         <div class="menu-grid">
                             <?php foreach ($items as $item):
-                                // 取得 ID 以便後端辨識
-                                $id = $item['menu_id'];
-                                ?>
+                                $id = $item['menu_id']; ?>
                                 <div class="menu-card">
+                                    <button type="button" class="delete-item-btn edit-mode" onclick="deleteItem(<?= $id ?>)">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+
                                     <div class="menu-info" style="width: 100%;">
                                         <div class="menu-name">
                                             <span class="view-mode"><?= htmlspecialchars($item['name']) ?></span>
                                             <input type="text" class="edit-mode form-control" name="menu[<?= $id ?>][name]"
-                                                value="<?= htmlspecialchars($item['name']) ?>"
-                                                style="display:none; width:100%; font-weight:bold; margin-bottom:5px;">
+                                                value="<?= htmlspecialchars($item['name']) ?>" style="display:none; width:100%; font-weight:bold; margin-bottom:5px;">
                                         </div>
 
                                         <div class="menu-desc">
                                             <?php $desc = $item['description'] ?? ''; ?>
                                             <span class="view-mode"><?= htmlspecialchars($desc) ?></span>
                                             <input type="text" class="edit-mode" name="menu[<?= $id ?>][description]"
-                                                value="<?= htmlspecialchars($desc) ?>" placeholder="描述"
-                                                style="display:none; width:100%; margin-bottom:5px;">
+                                                value="<?= htmlspecialchars($desc) ?>" placeholder="描述" style="display:none; width:100%; margin-bottom:5px;">
                                         </div>
 
                                         <div class="menu-tags">
                                             <span class="view-mode">
                                                 <?php if (!empty($item['cook_time']) && $item['cook_time'] != '00:00:00'): ?>
-                                                    <span><i class="bi bi-clock"></i> <?= substr($item['cook_time'], 3, 2) ?>分</span>
+                                                    <span style="font-size:12px; color:#888; background:#eee; padding:2px 6px; border-radius:4px;"><i class="bi bi-clock"></i> <?= substr($item['cook_time'], 3, 2) ?>分</span>
                                                 <?php endif; ?>
                                             </span>
                                             <label class="edit-mode" style="display:none; font-size:12px;">時間(分):</label>
                                             <input type="number" class="edit-mode" name="menu[<?= $id ?>][cook_time]"
-                                                value="<?= isset($item['cook_time']) ? substr($item['cook_time'], 3, 2) : '' ?>"
-                                                style="display:none; width:50px; padding:2px;">
+                                                value="<?= isset($item['cook_time']) ? substr($item['cook_time'], 3, 2) : '' ?>" style="display:none; width:50px; padding:2px;">
 
                                             <span class="view-mode">
                                                 <?php if (isset($item['stock'])): ?>
-                                                    <span style="color:#27ae60; background:#eafaf1;">庫存:<?= $item['stock'] ?></span>
+                                                    <span style="color:#27ae60; background:#eafaf1; font-size:12px; padding:2px 6px; border-radius:4px;">庫存:<?= $item['stock'] ?></span>
                                                 <?php endif; ?>
                                             </span>
-                                            <label class="edit-mode"
-                                                style="display:none; font-size:12px; margin-left:5px;">庫存:</label>
+                                            <label class="edit-mode" style="display:none; font-size:12px; margin-left:5px;">庫存:</label>
                                             <input type="number" class="edit-mode" name="menu[<?= $id ?>][stock]"
                                                 value="<?= $item['stock'] ?>" style="display:none; width:50px; padding:2px;">
                                         </div>
@@ -446,8 +405,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                                             <span class="view-mode">$<?= number_format($item['price']) ?></span>
                                             <span class="edit-mode" style="display:none;">$</span>
                                             <input type="number" class="edit-mode" name="menu[<?= $id ?>][price]"
-                                                value="<?= $item['price'] ?>"
-                                                style="display:none; width:80px; font-weight:bold; color:#2c3e50;">
+                                                value="<?= $item['price'] ?>" style="display:none; width:80px; font-weight:bold; color:#2c3e50;">
                                         </div>
                                     </div>
 
@@ -457,15 +415,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                                 </div>
                             <?php endforeach; ?>
                         </div>
-
                     <?php endforeach; ?>
-                </form> <?php endif; ?>
+                </form> 
+            <?php endif; ?>
         </div>
-
+        
         <div id="addMenuBlock" style="display:none;">
             <h2 style="color:#b35c00; border-bottom:1px solid #ccc; padding-bottom:10px;">新增菜單模式</h2>
+            <label>系列名稱</label><br>
+            <input type="text" id="menuType" placeholder="例如：漢堡、吐司、飲料">
+            <button id="saveTypeBtn" style="background:#f28c28; color:white; padding:6px 12px;">下一步</button>
+            <hr>
+            <div id="itemBlock" style="display:none;">
+                <h3 style="color:#b35c00;">新增品項</h3>
+                品項名稱：<br><input type="text" id="itemName"><br><br>
+                描述：<br><input type="text" id="itemDesc"><br><br>
+                價格：<br><input type="number" id="itemPrice"><br><br>
+                庫存：<br><input type="number" id="itemStock"><br><br>
+                備註：<br><input type="text" id="itemNote"><br><br>
+                烹飪時間（分鐘）：<br><input type="number" id="itemCook" placeholder="例如：15"><br><br>
+                <button id="saveItemBtn" style="background:#f28c28; color:white; padding:6px 12px;">儲存品項</button>
+            </div>
         </div>
-
     </div>
     <script>
         let currentItems = [];  // 暫存目前系列的所有品項
@@ -543,65 +514,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             })
                 .then(res => res.text())
                 .then(res => {
-                    alert(res);
+                    alert(res); // 顯示後端回傳的 "新增成功" 訊息
 
-                    // ⭐清空資料準備下一個系列
-                    currentItems = [];
-                    document.getElementById("menuType").value = "";
-                    document.getElementById("itemBlock").style.display = "none";
-
-                    alert("你可以繼續新增下一個系列！");
+                    // ★ 修改重點：新增成功後，重新整理頁面，讓 PHP 重新撈取資料庫的最新資料
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("發生錯誤，請稍後再試");
                 });
         };
 
         // 定義編輯狀態變數
-let isEditMode = false;
+        let isEditMode = false;
 
-// 綁定編輯按鈕功能
-function toggleAddMenu() {
-    const btn = document.getElementById("toggleBtn");
-    const viewElements = document.querySelectorAll('.view-mode');
-    const editElements = document.querySelectorAll('.edit-mode');
+        // 綁定編輯按鈕功能
+        function toggleAddMenu() {
+            const btn = document.getElementById("toggleBtn");
+            const viewElements = document.querySelectorAll('.view-mode');
+            const editElements = document.querySelectorAll('.edit-mode');
 
-    if (!isEditMode) {
-        // --- 進入編輯模式 ---
-        // 1. 隱藏文字，顯示輸入框
-        viewElements.forEach(el => el.style.display = 'none');
-        editElements.forEach(el => el.style.display = 'inline-block');
+            if (!isEditMode) {
+                // --- 進入編輯模式 ---
+                // 1. 隱藏文字，顯示輸入框
+                viewElements.forEach(el => el.style.display = 'none');
+                editElements.forEach(el => el.style.display = 'inline-block');
+
+                // 2. 改變按鈕樣式與文字
+                btn.innerHTML = "儲存所有變更";
+                btn.style.backgroundColor = "#27ae60"; // 變成綠色代表儲存
+
+                isEditMode = true;
+            } else {
+                // --- 執行儲存動作 ---
+                if (!confirm("確定要更新所有菜單嗎？")) return;
+
+                // 1. 收集表單資料
+                const form = document.getElementById("editMenuForm");
+                const formData = new FormData(form);
+
+                // 2. 透過 AJAX 送到後端
+                fetch('../store/store_menu_edit.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.text())
+                    .then(result => {
+                        alert(result); // 顯示後端回傳的訊息
+                        location.reload(); // 重新整理頁面以顯示最新資料
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert("發生錯誤，請稍後再試");
+                    });
+            }
+        }
         
-        // 2. 改變按鈕樣式與文字
-        btn.innerHTML = "儲存所有變更";
-        btn.style.backgroundColor = "#27ae60"; // 變成綠色代表儲存
-        
-        isEditMode = true;
-    } else {
-        // --- 執行儲存動作 ---
-        if(!confirm("確定要更新所有菜單嗎？")) return;
+        // ★ 刪除單一品項
+        function deleteItem(id) {
+            if(!confirm("確定要刪除這個品項嗎？")) return;
 
-        // 1. 收集表單資料
-        const form = document.getElementById("editMenuForm");
-        const formData = new FormData(form);
+            let formData = new FormData();
+            formData.append('action', 'delete_item');
+            formData.append('menu_id', id);
 
-        // 2. 透過 AJAX 送到後端
-        fetch('../store/store_menu_edit.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.text())
-        .then(result => {
-            alert(result); // 顯示後端回傳的訊息
-            location.reload(); // 重新整理頁面以顯示最新資料
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert("發生錯誤，請稍後再試");
-        });
-    }
-}
+            fetch('store_menu_delete.php', { 
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.text())
+            .then(res => {
+                alert(res);
+                location.reload();
+            })
+            .catch(err => {
+                console.error(err);
+                alert("發生錯誤，請檢查 Console");
+            });
+        }
+
+        // ★ 刪除整系列
+        function deleteType(typeName) {
+            if(!confirm("警告！這將會刪除「" + typeName + "」系列底下的【所有品項】！\n確定要繼續嗎？")) return;
+
+            let formData = new FormData();
+            formData.append('action', 'delete_type');
+            formData.append('type_name', typeName);
+
+            // 修改路徑：直接用當前目錄的檔案
+            fetch('store_menu_delete.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.text())
+            .then(res => {
+                alert(res);
+                location.reload();
+            })
+            .catch(err => {
+                console.error(err);
+                alert("發生錯誤，請檢查 Console");
+            });
+        }
     </script>
-
 </body>
-
-
-
 </html>

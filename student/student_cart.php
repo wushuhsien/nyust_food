@@ -117,11 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['checkout_store'])) {
             $status = "等待店家接單";
             $payment = "現金"; 
             
-            // 如果你想把使用者選的時間備註進去，可以這樣做：
-            // $user_note .= " (客預訂: $user_pick_time)";
-
             $stmt = $link->prepare($order_sql);
-            $stmt->bind_param("sssss", $estimate_time, $status, $user_note, $payment, $account);
+            
+            // ★ 修改重點：這裡原本是 $estimate_time，請改為 $user_pick_time
+            // 這樣存入資料庫的才會是使用者自己選的時間
+            $stmt->bind_param("sssss", $user_pick_time, $status, $user_note, $payment, $account);
             
             if (!$stmt->execute()) {
                 throw new Exception("訂單建立失敗");
