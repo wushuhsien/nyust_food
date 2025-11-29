@@ -46,20 +46,18 @@ if (isset($_POST['submit_review'])) {
 $search_query = isset($_GET['q']) ? trim($_GET['q']) : '';
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : '';
-// ★ 新增：接收評價篩選參數
 $rating_filter = isset($_GET['rating']) ? $_GET['rating'] : ''; 
 
 // 2. 準備 SQL 查詢
 
 // 步驟 A: 先找出符合搜尋條件的 order_id 列表
-// ★ 修改：在這裡就要 LEFT JOIN mealreview，才能針對評價進行篩選
 $id_sql = "
     SELECT DISTINCT o.order_id
     FROM `order` o
     JOIN `orderitem` oi ON o.order_id = oi.order_id
     JOIN `menu` m ON oi.menu_id = m.menu_id
     JOIN `store` s ON m.account = s.account
-    LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id  /* ★ 加入關聯以便篩選 */
+    LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id 
     WHERE o.account = ? 
     AND o.status IN ('已取餐', '已取消', '商家拒單')
 ";
@@ -88,13 +86,11 @@ if (!empty($end_date)) {
     $id_types .= "s";
 }
 
-// ★ 新增：評價篩選邏輯
+// 評價篩選邏輯
 if ($rating_filter !== '') {
     if ($rating_filter === 'unrated') {
-        // 篩選尚未評價 (rate 為 NULL)
         $id_sql .= " AND mr.rate IS NULL";
     } else {
-        // 篩選特定星數 (1~5)
         $id_sql .= " AND mr.rate = ?";
         $id_params[] = $rating_filter;
         $id_types .= "i";
@@ -118,6 +114,7 @@ $history_orders = [];
 if (!empty($target_order_ids)) {
     $placeholders = implode(',', array_fill(0, count($target_order_ids), '?'));
     
+    // ★ 修改：加入 LEFT JOIN mealreviewreply
     $sql = "
         SELECT 
             o.order_id, 
@@ -130,13 +127,19 @@ if (!empty($target_order_ids)) {
             m.price,
             oi.quantity,
             oi.note AS item_note,
+            
             mr.rate AS review_rate,        
-            mr.description AS review_desc   
+            mr.description AS review_desc,
+            
+            mrr.description AS reply_desc,  /* 店家回覆內容 */
+            mrr.time AS reply_time          /* 店家回覆時間 */
+            
         FROM `order` o
         JOIN `orderitem` oi ON o.order_id = oi.order_id
         JOIN `menu` m ON oi.menu_id = m.menu_id
         JOIN `store` s ON m.account = s.account
         LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id
+        LEFT JOIN `mealreviewreply` mrr ON o.order_id = mrr.order_id /* ★ 加入回覆表關聯 */
         WHERE o.order_id IN ($placeholders)
         ORDER BY o.order_id DESC
     ";
@@ -161,7 +164,10 @@ if (!empty($target_order_ids)) {
                 'items' => [],
                 'total_price' => 0,
                 'review_rate' => $row['review_rate'], 
-                'review_desc' => $row['review_desc']
+                'review_desc' => $row['review_desc'],
+                // ★ 儲存回覆資料
+                'reply_desc' => $row['reply_desc'],
+                'reply_time' => $row['reply_time']
             ];
         }
         
@@ -201,7 +207,7 @@ foreach ($history_orders as $order) {
         
         .search-section { background: white; padding: 15px; border-bottom: 1px solid #eee; }
         .search-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .search-bar input, .search-bar select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; } /* 新增 select 樣式 */
+        .search-bar input, .search-bar select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
         .search-btn { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
         .search-btn:hover { background: #5a6268; }
         .reset-link { color: #dc3545; text-decoration: none; font-size: 14px; margin-left: 5px; }
@@ -251,6 +257,13 @@ foreach ($history_orders as $order) {
         .reviewed-box { background: #fff8e1; border: 1px solid #ffeeba; padding: 10px; border-radius: 8px; margin-top: 15px; }
         .reviewed-stars { color: #ffc107; font-size: 18px; }
         .reviewed-text { color: #555; margin-top: 5px; font-size: 14px; }
+
+        /* ★ 新增：店家回覆樣式 */
+        .reply-box {
+            margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e6dbb9;
+        }
+        .reply-title { font-size: 13px; color: #997404; font-weight: bold; margin-bottom: 3px; }
+        .reply-content { font-size: 14px; color: #666; background: rgba(255,255,255,0.6); padding: 5px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -381,6 +394,18 @@ foreach ($history_orders as $order) {
                                         <div class="reviewed-text">
                                             <strong>評論：</strong><?= htmlspecialchars($order['review_desc']) ?>
                                         </div>
+
+                                        <?php if (!empty($order['reply_desc'])): ?>
+                                            <div class="reply-box">
+                                                <div class="reply-title">
+                                                    <i class="bi bi-shop"></i> 店家回覆 
+                                                    <span style="font-weight:normal; color:#999; font-size:12px;">(<?= date('Y/m/d', strtotime($order['reply_time'])) ?>)</span>
+                                                </div>
+                                                <div class="reply-content">
+                                                    <?= htmlspecialchars($order['reply_desc']) ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
 
                                 <?php else: ?>
