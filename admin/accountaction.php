@@ -13,7 +13,7 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --main-green: #4caf50;
+            --main-brown: #C19A6B;
         }
 
         h2 {
@@ -41,7 +41,7 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
         }
 
         thead {
-            background: var(--main-green);
+            background: var(--main-brown);
             color: white;
         }
 
@@ -58,7 +58,7 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
         }
 
         tbody tr:hover {
-            background: #e8f5e9;
+            background: #fae6c0;
         }
 
         .action-bar {

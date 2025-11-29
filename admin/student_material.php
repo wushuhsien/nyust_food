@@ -146,8 +146,8 @@ if (isset($_POST['add_student'])) {
         }
 
         .add-box button:hover {
-            background: var(--dark-brown);
-            transform: scale(1.02);
+            opacity: 0.85;
+            transform: scale(1.05);
         }
 
         table {
@@ -256,14 +256,15 @@ if (isset($_POST['add_student'])) {
         }
 
         .search-box button {
-            padding: 10px 16px;
+            padding: 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
+            font-size: 15px;
             background: var(--main-brown);
-            color: var(--dark-brown);
-            font-size: 14px;
+            color: white;
             font-weight: 600;
             cursor: pointer;
+            transition: 0.2s;
         }
 
         .search-box button:hover {

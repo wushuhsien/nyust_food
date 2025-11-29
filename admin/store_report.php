@@ -13,33 +13,29 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
     <meta charset="UTF-8">
     <title>店家問題</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: "Microsoft JhengHei", sans-serif;
-            background: #f5f6fa;
-        }
-
         .container {
-            width: 90%;
-            margin: 30px auto;
-            padding: 20px;
+            width: 95%;
+            margin: 20px auto 0 auto;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         }
 
         h2 {
             text-align: center;
-            margin-bottom: 25px;
-            color: #333;
-            font-size: 26px;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 20px auto -20px auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            min-width: 800px;
+            border-radius: 14px;
+            margin-top: 30px;
         }
 
         th,
@@ -51,7 +47,7 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
         }
 
         th {
-            background: #2ecc71;
+            background: #C19A6B;
             color: white;
             font-weight: 600;
         }
@@ -61,10 +57,9 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
         }
 
         .status {
-            padding: 6px 10px;
-            border-radius: 6px;
-            color: white;
-            font-size: 14px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
 
         .s1 {
@@ -126,7 +121,7 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
         .btn-nav {
             cursor: pointer;
             padding: 10px 12px;
-            background: #2ecc71;
+            background: #C19A6B;
             border-radius: 8px;
             color: white;
             margin: 10px;
