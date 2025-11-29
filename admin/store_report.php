@@ -53,7 +53,7 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
         }
 
         tr:hover {
-            background: #f1f1f1;
+            background: #f5f0eb;
         }
 
         .status {

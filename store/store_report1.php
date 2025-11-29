@@ -132,8 +132,8 @@ if (isset($_POST['add_report'])) {
             border: none;
             border-radius: 10px;
             font-size: 15px;
-            background: #f28c28;
-            color: white;
+            background: #d17a22;
+            color: #fff8f0;
             font-weight: 600;
             cursor: pointer;
             transition: 0.2s;
@@ -159,8 +159,8 @@ if (isset($_POST['add_report'])) {
         }
 
         th {
-            background: #f28c28;
-            color: white;
+            background: #d17a22;
+            color: #fff8f0;
             font-weight: 600;
         }
 
@@ -199,7 +199,7 @@ if (isset($_POST['add_report'])) {
             font-size: 12px;
             color: white;
             cursor: pointer;
-            background-color: #FFA042;
+            background-color: #FF8000;
         }
 
         .search:hover {
@@ -249,9 +249,9 @@ if (isset($_POST['add_report'])) {
         .btn-nav {
             cursor: pointer;
             padding: 10px 12px;
-            background: #f28c28;
+            background: #d17a22;
+            color: #fff8f0;
             border-radius: 8px;
-            color: white;
             margin: 10px;
             font-size: 14px;
         }

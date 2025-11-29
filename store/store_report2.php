@@ -94,8 +94,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         th {
-            background: #f28c28;
-            color: white;
+            background: #d17a22;
+            color: #fff8f0;
             font-weight: 600;
         }
 
@@ -169,9 +169,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .btn-nav {
             cursor: pointer;
             padding: 10px 12px;
-            background: #f28c28;
+            background: #d17a22;
+            color: #fff8f0;
             border-radius: 8px;
-            color: white;
             margin: 10px;
             font-size: 14px;
         }

@@ -96,7 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         tr:hover {
-            background: #f1f1f1;
+            background: #f5f0eb;
         }
 
         .status {
