@@ -177,7 +177,6 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                     <div id="subMenu" class="sub-dropdown">
                         <input type="button" value="基本資料" onclick="window.location='student_information.php'">
                         <input type="button" value="歷史訂單" onclick="window.location='student_history.php'">
-                        <input type="button" value="評價紀錄" onclick="alert('評價紀錄')">
                     </div>
                     <input type="button" value="問題" onclick="window.location='student_report.php'">
                     <input type="button" value="登出" onclick="window.location='../login.html'">

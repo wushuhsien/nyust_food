@@ -206,11 +206,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
         // ✅ 把條件真正加回 SQL
         if (count($conditions) > 0) {
             $sql .= " AND " . implode(" AND ", $conditions);
-        } else {
-            // 🔹 若完全沒選日期也沒主題，顯示目前有效公告
-            $now = date("Y-m-d H:i:s");
-            $sql .= " AND start_time <= '$now' AND end_time >= '$now'";
-        }
+        } 
+        // else {
+        //     // 🔹 若完全沒選日期也沒主題，顯示目前有效公告
+        //     $now = date("Y-m-d H:i:s");
+        //     $sql .= " AND start_time <= '$now' AND end_time >= '$now'";
+        // }
 
         $sql .= " ORDER BY start_time ASC";
 

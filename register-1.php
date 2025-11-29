@@ -98,59 +98,76 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
         $address = $_POST['store_address'];
         $phone = $_POST['store_phone'];
         $email = $_POST['store_email'];
-        $storetypeName = $_POST['store_type'];
 
-        // 用name找storetype_id
-        $stmtType = $link->prepare("SELECT storetype_id FROM storetype WHERE name=?");
-        $stmtType->bind_param("s", $storetypeName);
-        $stmtType->execute();
-        $typeResult = $stmtType->get_result();
-
-        if ($typeResult->num_rows == 0) {
-            echo "<script>alert('找不到店家類型！');</script>";
+        // ★ 複選類型必須至少選 1 個
+        if (!isset($_POST['store_type']) || count($_POST['store_type']) == 0) {
+            echo "<script>alert('請至少選擇一個店家類型！'); history.back();</script>";
             exit;
         }
-        $storetype_id = $typeResult->fetch_assoc()['storetype_id'];
 
-        $sql2 = "INSERT INTO store(store_id, name, description, address, phone, email, storetype_id, account)
+        // ★ 如果前端是一個字串，先切割成陣列
+        $storetypeNames = is_array($_POST['store_type']) ? $_POST['store_type'] : explode("/", $_POST['store_type']);
+
+        // ★ 這裡要多次執行 INSERT store
+        foreach ($storetypeNames as $typeName) {
+            $typeName = trim($typeName); // 去除前後空白
+            if ($typeName === '') continue;
+
+            // 用name找storetype_id
+            $stmtType = $link->prepare("SELECT storetype_id FROM storetype WHERE name=?");
+            $stmtType->bind_param("s", $typeName);
+            $stmtType->execute();
+            $typeResult = $stmtType->get_result();
+
+            if ($typeResult->num_rows == 0) {
+                echo "<script>alert('找不到店家類型：" . $typeName . "'); history.back();</script>";
+                exit;
+            }
+            $storetype_id = $typeResult->fetch_assoc()['storetype_id'];
+
+            $sql2 = "INSERT INTO store(store_id, name, description, address, phone, email, storetype_id, account)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        $stmt2 = $link->prepare($sql2);
-        $stmt2->bind_param(
-            "isssssis",
-            $nextId,
-            $name,
-            $desc,
-            $address,
-            $phone,
-            $email,
-            $storetype_id,
-            $username
-        );
+            $stmt2 = $link->prepare($sql2);
+            $stmt2->bind_param(
+                "isssssis",
+                $nextId,
+                $name,
+                $desc,
+                $address,
+                $phone,
+                $email,
+                $storetype_id,
+                $username
+            );
 
-        if ($stmt2->execute()) {
-            // 插入 storehours
-            if (!empty($_POST['open_time']) && !empty($_POST['close_time'])) {
-                foreach ($_POST['open_time'] as $weekday => $opens) {
-                    $closes = $_POST['close_time'][$weekday];
-                    for ($i = 0; $i < count($opens); $i++) {
-                        $open = $opens[$i];
-                        $close = $closes[$i];
-
-                        $stmtHour = $link->prepare("INSERT INTO storehours(weekday, open_time, close_time, account) VALUES (?, ?, ?, ?)");
-                        $stmtHour->bind_param("isss", $weekday, $open, $close, $username);
-                        $stmtHour->execute();
-                    }
-                }
+            if (!$stmt2->execute()) {
+                echo "<script>alert('店家資料寫入失敗（類型：" . $typeName . "）'); history.back();</script>";
+                exit;
             }
 
-            session_destroy();
-            echo "<script>alert('店家註冊成功！'); location.href='login.html';</script>";
-            exit;
-        } else {
-            echo "店家資料寫入失敗";
-            exit;
+            // 每插入一次 store_id 自增
+            $nextId++;
         }
+
+        // 插入 storehours
+        if (!empty($_POST['open_time']) && !empty($_POST['close_time'])) {
+            foreach ($_POST['open_time'] as $weekday => $opens) {
+                $closes = $_POST['close_time'][$weekday];
+                for ($i = 0; $i < count($opens); $i++) {
+                    $open = $opens[$i];
+                    $close = $closes[$i];
+
+                    $stmtHour = $link->prepare("INSERT INTO storehours(weekday, open_time, close_time, account) VALUES (?, ?, ?, ?)");
+                    $stmtHour->bind_param("isss", $weekday, $open, $close, $username);
+                    $stmtHour->execute();
+                }
+            }
+        }
+
+        session_destroy();
+        echo "<script>alert('店家註冊成功！'); location.href='login.html';</script>";
+        exit;
     }
 
     // 註冊成功
@@ -346,12 +363,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
                 <!-- 左欄 -->
                 <div class="left-col">
                     <label><span class="required">*</span>店家類型：</label><br>
-                    <select name="store_type" required>
-                        <option value="">請選擇</option>
+                    <div style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; background: #f9f9f9;">
                         <?php foreach ($storeTypes as $type): ?>
-                            <option value="<?php echo $type; ?>"><?php echo $type; ?></option>
+                            <label style="display: block; margin-bottom: 5px;">
+                                <input type="checkbox" name="store_type[]" value="<?php echo $type; ?>">
+                                <?php echo $type; ?>
+                            </label>
                         <?php endforeach; ?>
-                    </select><br><br>
+                    </div><br>
 
                     <label><span class="required">*</span>店家名稱：</label><br>
                     <input type="text" name="store_name" required><br><br>
