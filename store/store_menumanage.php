@@ -311,6 +311,30 @@ $stmt->close();
         .upload-overlay:hover {
             background: rgba(0, 0, 0, 0.7);
         }
+
+        /* 圖片刪除按鈕 (紅色小叉叉) */
+        .img-delete-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background-color: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 18px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10;
+            /* 確保在最上層 */
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .img-delete-btn:hover {
+            background-color: #c0392b;
+        }
     </style>
 
 </head>
@@ -457,22 +481,30 @@ $stmt->close();
                                         </div>
                                     </div>
 
-                                    <div class="menu-img-box" style="overflow:hidden; position:relative;">
-
-                                        <img id="preview-<?= $id ?>"
+                                    <div class="menu-img-box" style="overflow:visible; position:relative;"> <img
+                                            id="preview-<?= $id ?>"
                                             src="<?= !empty($item['img_id']) ? 'get_image.php?id=' . $item['img_id'] : '' ?>"
-                                            style="width:100%; height:100%; object-fit:cover; display: <?= !empty($item['img_id']) ? 'block' : 'none' ?>;">
+                                            style="width:100%; height:100%; object-fit:cover; border-radius:8px; display: <?= !empty($item['img_id']) ? 'block' : 'none' ?>;">
 
                                         <i id="icon-<?= $id ?>" class="bi bi-cup-hot"
                                             style="display: <?= !empty($item['img_id']) ? 'none' : 'block' ?>;"></i>
 
-                                        <label class="edit-mode upload-overlay" style="display:none;">
+                                        <span id="btn-del-img-<?= $id ?>" class="edit-mode img-delete-btn" style="display:none;"
+                                            onclick="deleteImage(<?= $id ?>)">
+                                            &times;
+                                        </span>
+
+                                        <label class="edit-mode upload-overlay" style="display:none; border-radius:8px;">
                                             <i class="bi bi-camera-fill"></i> 更換
                                             <input type="file" style="display:none;" accept="image/*"
                                                 onchange="handleEditImage(this, <?= $id ?>)">
                                         </label>
 
                                         <input type="hidden" name="menu[<?= $id ?>][image_base64]" id="base64-<?= $id ?>">
+
+                                        <input type="hidden" name="menu[<?= $id ?>][delete_image]" id="delete-flag-<?= $id ?>"
+                                            value="0">
+
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -598,37 +630,97 @@ $stmt->close();
 
             if (!isEditMode) {
                 // --- 進入編輯模式 ---
-                // 1. 隱藏文字，顯示輸入框
                 viewElements.forEach(el => el.style.display = 'none');
+
+                // 顯示所有 edit-mode 元素
                 editElements.forEach(el => el.style.display = 'inline-block');
 
-                // 2. 改變按鈕樣式與文字
-                btn.innerHTML = "儲存所有變更";
-                btn.style.backgroundColor = "#27ae60"; // 變成綠色代表儲存
+                // ★ 特別處理：檢查每一張圖，如果現在是「預設圖示」狀態，就不要顯示刪除按鈕
+                document.querySelectorAll('.menu-img-box').forEach(box => {
+                    // 找出這個 box 對應的 ID (從小叉叉的 ID 裡抓數字)
+                    let delBtn = box.querySelector('.img-delete-btn');
+                    if (delBtn) {
+                        let id = delBtn.id.split('-').pop(); // 取得 ID
+                        let img = document.getElementById('preview-' + id);
 
+                        // 如果圖片是隱藏的 (代表現在沒圖)，就隱藏刪除按鈕
+                        if (img.style.display === 'none') {
+                            delBtn.style.display = 'none';
+                        } else {
+                            delBtn.style.display = 'block';
+                        }
+                    }
+                });
+
+                // 隱藏上傳遮罩的 inline-block 改為 flex (因為 CSS 定義它是 flex)
+                document.querySelectorAll('.upload-overlay').forEach(el => el.style.display = 'flex');
+
+                btn.innerHTML = "儲存所有變更";
+                btn.style.backgroundColor = "#27ae60";
                 isEditMode = true;
             } else {
-                // --- 執行儲存動作 ---
+                // ... (儲存邏輯不變) ...
                 if (!confirm("確定要更新所有菜單嗎？")) return;
-
-                // 1. 收集表單資料
                 const form = document.getElementById("editMenuForm");
                 const formData = new FormData(form);
-
-                // 2. 透過 AJAX 送到後端
                 fetch('../store/store_menu_edit.php', {
                     method: 'POST',
                     body: formData
                 })
                     .then(response => response.text())
                     .then(result => {
-                        alert(result); // 顯示後端回傳的訊息
-                        location.reload(); // 重新整理頁面以顯示最新資料
+                        alert(result);
+                        location.reload();
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert("發生錯誤，請稍後再試");
+                        alert("發生錯誤");
                     });
+            }
+        }
+
+        // ★ 新增：刪除圖片函式
+        function deleteImage(id) {
+            // 1. 隱藏圖片預覽
+            document.getElementById('preview-' + id).style.display = 'none';
+            document.getElementById('preview-' + id).src = '';
+
+            // 2. 顯示預設杯子 Icon
+            document.getElementById('icon-' + id).style.display = 'block';
+
+            // 3. 隱藏刪除按鈕自己
+            document.getElementById('btn-del-img-' + id).style.display = 'none';
+
+            // 4. 設定資料標記
+            document.getElementById('base64-' + id).value = ''; // 清空可能剛上傳的新圖
+            document.getElementById('delete-flag-' + id).value = '1'; // ★ 設定刪除標記為 1
+        }
+
+        // 修改：處理編輯模式下的圖片選擇
+        async function handleEditImage(input, id) {
+            if (input.files && input.files[0]) {
+                let file = input.files[0];
+                try {
+                    let base64 = await toBase64(file);
+
+                    // 更新 Base64 欄位
+                    document.getElementById('base64-' + id).value = base64;
+
+                    // ★ 重置刪除標記 (因為使用者剛選了新圖，代表不刪了)
+                    document.getElementById('delete-flag-' + id).value = '0';
+
+                    // 即時預覽
+                    document.getElementById('icon-' + id).style.display = 'none';
+                    let img = document.getElementById('preview-' + id);
+                    img.style.display = 'block';
+                    img.src = base64;
+
+                    // ★ 選了新圖後，顯示刪除按鈕 (讓使用者可以反悔)
+                    document.getElementById('btn-del-img-' + id).style.display = 'block';
+
+                } catch (e) {
+                    alert("圖片處理錯誤");
+                }
             }
         }
 
