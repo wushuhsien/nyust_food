@@ -35,6 +35,7 @@ $end_date = $_GET['end_date'] ?? '';
 <head>
     <meta charset="UTF-8">
     <title>歷史訂單 - <?= htmlspecialchars($store_name) ?></title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         :root {
             --green: #3d9462;
@@ -223,6 +224,17 @@ $end_date = $_GET['end_date'] ?? '';
             text-decoration: underline;
             font-weight: 600;
         }
+
+        /* 評論與回覆樣式 */
+        .reviewed-box { background: #fff8e1; border: 1px solid #ffeeba; padding: 10px; border-radius: 8px; margin-top: 15px; }
+        .reviewed-stars { color: #ffc107; font-size: 18px; }
+        .reviewed-text { color: #555; margin-top: 5px; font-size: 14px; }
+        
+        .reply-box {
+            margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e6dbb9;
+        }
+        .reply-title { font-size: 13px; color: #997404; font-weight: bold; margin-bottom: 3px; }
+        .reply-content { font-size: 14px; color: #666; background: rgba(255,255,255,0.6); padding: 5px; border-radius: 4px; }
     </style>
 </head>
 
@@ -262,8 +274,8 @@ $end_date = $_GET['end_date'] ?? '';
                     <th>訂購人</th>
                     <th>預計取餐時間</th>
                     <th>實際取餐時間</th>
-                    <th>付款方式</th>
-                    <th>備註</th> <th>總金額</th>
+                    <th>備註</th> 
+                    <th>總金額</th>
                     <th>狀態</th>
                     <th>操作</th>
                 </tr>
@@ -272,7 +284,6 @@ $end_date = $_GET['end_date'] ?? '';
                 <?php
                 // --- SQL 查詢與動態條件組合 ---
                 
-                // 基礎 SQL 片段
                 $sql_base = "";
                 $params = [];
                 $types = "";
@@ -286,14 +297,27 @@ $end_date = $_GET['end_date'] ?? '';
                             s_acc.name AS student_name,
                             o.estimate_time, 
                             o.pick_time, 
-                            o.payment, 
+                            /* 移除 o.payment */
                             o.status,
-                            o.note,  /* 新增：選取備註 */
-                            SUM(oi.quantity * m.price) as total_price
+                            o.note, 
+                            SUM(oi.quantity * m.price) as total_price,
+                            
+                            /* ★ 新增：選取評論與回覆 */
+                            mr.rate AS review_rate,
+                            mr.description AS review_desc,
+                            mr.time AS review_time,        /* 學生評論時間 */
+                            mrr.description AS reply_desc,
+                            mrr.time AS reply_time         /* 店家回覆時間 */
+
                         FROM `order` o
                         JOIN `orderitem` oi ON o.order_id = oi.order_id
                         JOIN `menu` m ON oi.menu_id = m.menu_id
                         LEFT JOIN `student` s_acc ON o.account = s_acc.account
+                        
+                        /* ★ 關聯評論表與回覆表 */
+                        LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id
+                        LEFT JOIN `mealreviewreply` mrr ON o.order_id = mrr.order_id
+                        
                         WHERE m.account = ? 
                     ";
                     $types .= "s";
@@ -301,9 +325,16 @@ $end_date = $_GET['end_date'] ?? '';
                 } else {
                     // 備用模式 (直接查 user)
                     $sql_base = "
-                        SELECT o.*, o.note, '未知總額' as total_price, s.name as student_name 
+                        SELECT o.*, o.note, '未知總額' as total_price, s.name as student_name,
+                        mr.rate AS review_rate, mr.description AS review_desc, 
+                        mr.time AS review_time, /* ★ 新增 */
+                        mrr.description AS reply_desc, mrr.time AS reply_time
+                        
                         FROM `order` o 
                         LEFT JOIN student s ON o.account = s.account
+                        LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id
+                        LEFT JOIN `mealreviewreply` mrr ON o.order_id = mrr.order_id
+                        
                         WHERE o.account = ? 
                     ";
                     $types .= "s";
@@ -314,8 +345,6 @@ $end_date = $_GET['end_date'] ?? '';
                 
                 // 1. 搜尋 (訂單編號 OR 訂購人姓名)
                 if (!empty($search_query)) {
-                    // 注意：因為有 JOIN，需明確指定欄位來源
-                    // 店家模式下有 s_acc，備用模式下有 s
                     $alias = ($store_id > 0) ? "s_acc" : "s";
                     $sql_base .= " AND (o.order_id LIKE ? OR $alias.name LIKE ?) ";
                     $types .= "ss";
@@ -343,11 +372,9 @@ $end_date = $_GET['end_date'] ?? '';
                 }
                 $sql_base .= " ORDER BY o.estimate_time DESC";
 
-
                 // --- 執行查詢 ---
                 $stmt = $link->prepare($sql_base);
                 
-                // 動態綁定參數 (使用 ...拆包運算子，PHP 5.6+)
                 if (!empty($params)) {
                     $stmt->bind_param($types, ...$params);
                 }
@@ -364,7 +391,6 @@ $end_date = $_GET['end_date'] ?? '';
                         else $statusClass .= ' status-cancel';
 
                         $stuName = $row['student_name'] ?? $row['student_account'];
-                        // 處理備註顯示，如果是 NULL 則顯示 --
                         $orderNote = !empty($row['note']) ? htmlspecialchars($row['note']) : '<span style="color:#ccc">--</span>';
                         ?>
                         <tr>
@@ -375,7 +401,6 @@ $end_date = $_GET['end_date'] ?? '';
                             </td>
                             <td><?= $row['estimate_time'] ?></td>
                             <td><?= $row['pick_time'] ?? '--' ?></td>
-                            <td><?= $row['payment'] ?></td>
                             
                             <td title="<?= htmlspecialchars($row['note']) ?>">
                                 <div class="note-text"><?= $orderNote ?></div>
@@ -389,7 +414,8 @@ $end_date = $_GET['end_date'] ?? '';
                         </tr>
 
                         <tr id="detail-<?= $row['order_id'] ?>" class="detail-row">
-                            <td colspan="9"> <div class="detail-box">
+                            <td colspan="8"> 
+                                <div class="detail-box">
                                     <strong>訂單內容：</strong><br>
                                     <?php
                                     $oid = $row['order_id'];
@@ -411,6 +437,40 @@ $end_date = $_GET['end_date'] ?? '';
                                         }
                                     }
                                     ?>
+
+                                    <?php if (!empty($row['review_rate'])): ?>
+                                        <div class="reviewed-box">
+                                            <div class="reviewed-stars">
+                                                <?php 
+                                                for($i=1; $i<=5; $i++) {
+                                                    if($i <= $row['review_rate']) echo '<i class="bi bi-star-fill"></i>';
+                                                    else echo '<i class="bi bi-star" style="color:#ccc"></i>';
+                                                }
+                                                ?>
+                                                <span style="color:#888; font-size:14px; margin-left:5px;">
+                                                    <i class="bi bi-person-fill"></i> (訂購人評價)
+                                                    <span style="font-size:12px; color:#999; margin-left:5px;">
+                                                        <?= date('Y/m/d', strtotime($row['review_time'])) ?>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div class="reviewed-text">
+                                                <strong>評論：</strong><?= htmlspecialchars($row['review_desc']) ?>
+                                            </div>
+
+                                            <?php if (!empty($row['reply_desc'])): ?>
+                                                <div class="reply-box">
+                                                    <div class="reply-title">
+                                                        <i class="bi bi-shop"></i> 店家回覆 
+                                                        <span style="font-weight:normal; color:#999; font-size:12px;">(<?= date('Y/m/d', strtotime($row['reply_time'])) ?>)</span>
+                                                    </div>
+                                                    <div class="reply-content">
+                                                        <?= htmlspecialchars($row['reply_desc']) ?>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -418,7 +478,7 @@ $end_date = $_GET['end_date'] ?? '';
                         <?php
                     }
                 } else {
-                    echo "<tr><td colspan='9' style='padding:30px; color:#888;'>查無符合條件的訂單</td></tr>";
+                    echo "<tr><td colspan='8' style='padding:30px; color:#888;'>查無符合條件的訂單</td></tr>";
                 }
                 $stmt->close();
                 ?>

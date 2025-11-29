@@ -3,8 +3,8 @@ session_start();
 include "db.php";  // 這裡已經會產生 $storeTypes 陣列
 
 // 取得上一頁帳密與角色
-$username   = $_SESSION['reg_username'] ?? '';
-$password   = $_SESSION['reg_password'] ?? '';
+$username = $_SESSION['reg_username'] ?? '';
+$password = $_SESSION['reg_password'] ?? '';
 $role = $_SESSION['reg_role'] ?? '';
 
 if (!$username || !$password || $role === '') {
@@ -15,7 +15,21 @@ if (!$username || !$password || $role === '') {
 // 建立資料庫
 if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
-    //新增account帳密資料表
+    // --- 新增：檢查帳號是否已存在 ---
+    $check_sql = "SELECT account FROM account WHERE account = ?";
+    $check_stmt = $link->prepare($check_sql);
+    $check_stmt->bind_param("s", $username);
+    $check_stmt->execute();
+    $check_stmt->store_result();
+
+    if ($check_stmt->num_rows > 0) {
+        echo "<script>alert('註冊失敗：帳號 $username 已經存在！請更換帳號。'); location.href='register.php';</script>";
+        exit;
+    }
+    $check_stmt->close();
+    // -----------------------------
+
+    // 新增 account 帳密資料表
     $sql = "INSERT INTO account(account, password, created_time, role, permission, stop_reason)
             VALUES (?, ?, CURRENT_TIMESTAMP(), ?, 0, NULL)";
     $stmt = $link->prepare($sql);
@@ -32,21 +46,27 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
         // 取得 student 最大流水號
         $result = $link->query("SELECT MAX(student_id) AS maxid FROM student");
-        $row    = $result->fetch_assoc();
+        $row = $result->fetch_assoc();
         $nextId = ($row['maxid'] === NULL ? 1 : $row['maxid'] + 1);
 
-        $stu_name  = $_POST['stu_name'];
-        $stu_nick  = $_POST['stu_nick'];
+        $stu_name = $_POST['stu_name'];
+        $stu_nick = $_POST['stu_nick'];
         $stu_phone = $_POST['stu_phone'];
         $stu_email = $_POST['stu_email'];
-        $acc       = $username;
+        $acc = $username;
 
+        // 修改 SQL：VALUES 裡面只留 6 個問號
         $sql2 = "INSERT INTO student(student_id, name, nickname, phone, email, account)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+         VALUES (?, ?, ?, ?, ?, ?)";
 
         $stmt2 = $link->prepare($sql2);
+
+        // 修改 bind_param：對應 6 個參數 (格式字串也改成 6 個 's' 或 'i')
+        // student_id 是 int -> 'i'
+        // 其他 5 個是 string -> 's'
+        // 所以格式字串是 "isssss"
         $stmt2->bind_param(
-            "isssssss",
+            "isssss",
             $nextId,
             $stu_name,
             $stu_nick,
@@ -70,14 +90,14 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
 
         //取得store最大流水號
         $result = $link->query("SELECT MAX(store_id) AS maxid FROM store");
-        $row    = $result->fetch_assoc();
+        $row = $result->fetch_assoc();
         $nextId = ($row['maxid'] === NULL ? 1 : $row['maxid'] + 1);
 
-        $name    = $_POST['store_name'];
-        $desc    = $_POST['store_desc'];
+        $name = $_POST['store_name'];
+        $desc = $_POST['store_desc'];
         $address = $_POST['store_address'];
-        $phone   = $_POST['store_phone'];
-        $email   = $_POST['store_email'];
+        $phone = $_POST['store_phone'];
+        $email = $_POST['store_email'];
         $storetypeName = $_POST['store_type'];
 
         // 用name找storetype_id
@@ -114,7 +134,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
                 foreach ($_POST['open_time'] as $weekday => $opens) {
                     $closes = $_POST['close_time'][$weekday];
                     for ($i = 0; $i < count($opens); $i++) {
-                        $open  = $opens[$i];
+                        $open = $opens[$i];
                         $close = $closes[$i];
 
                         $stmtHour = $link->prepare("INSERT INTO storehours(weekday, open_time, close_time, account) VALUES (?, ?, ?, ?)");
@@ -325,7 +345,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
             <div class="two-col">
                 <!-- 左欄 -->
                 <div class="left-col">
-                    <label>店家類型：<span class="required">*</span></label><br>
+                    <label><span class="required">*</span>店家類型：</label><br>
                     <select name="store_type" required>
                         <option value="">請選擇</option>
                         <?php foreach ($storeTypes as $type): ?>
@@ -343,9 +363,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
                     <input type="text" name="store_address" required><br><br>
 
                     <label><span class="required">*</span>電話：</label><br>
-                    <input type="text" name="store_phone"
-                        required
-                        pattern="(09\d{8}|0\d{1,3}\d{5,8})"
+                    <input type="text" name="store_phone" required pattern="(09\d{8}|0\d{1,3}\d{5,8})"
                         title="請輸入手機（0912345678）或市話（例如0212345678）">
                     <br><br>
 
@@ -354,7 +372,8 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
                 </div>
                 <!-- 右欄 -->
                 <div class="right-col">
-                    <label><span class="required">*</span>營業時間：<button type="button" id="apply-btn">套用到其他天</button></label><br>
+                    <label><span class="required">*</span>營業時間：<button type="button"
+                            id="apply-btn">套用到其他天</button></label><br>
                     <div id="business-hours"></div>
                 </div>
                 <script>
@@ -446,9 +465,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'create') {
             <label>暱稱：</label><br>
             <input type="text" name="stu_nick" required><br><br>
             <label><span class="required">*</span>電話：</label><br>
-            <input type="text" name="stu_phone"
-                required
-                pattern="(09\d{8}|0\d{1,3}\d{5,8})"
+            <input type="text" name="stu_phone" required pattern="(09\d{8}|0\d{1,3}\d{5,8})"
                 title="請輸入手機（0912345678）或市話（例如0212345678）">
             <br><br>
 
