@@ -1,5 +1,18 @@
 <?php
+// 判斷 session 是否已啟動，若無則啟動 (防止重複啟動錯誤)
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
 $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
+
+// ★ 新增：計算目前 Session 購物車內的總數量
+$total_cart_count = 0;
+if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+    foreach ($_SESSION['cart'] as $qty) {
+        $total_cart_count += intval($qty);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -79,7 +92,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
             min-width: 150px;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
             border-radius: 6px;
-            z-index: 1;
+            z-index: 100; /* 這裡改大一點，避免被遮住 */
             border: 1px solid #e8f3ff;
         }
 
@@ -112,6 +125,35 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
         .sub-dropdown input[type="button"] {
             padding-left: 20px;
         }
+
+        /* ★ 新增：購物車樣式 */
+        .cart-container {
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin-right: 15px; /* 與帳號名稱拉開距離 */
+        }
+        .cart-icon {
+            font-size: 24px;
+            color: white;
+        }
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -10px;
+            background-color: #e74c3c; /* 紅色圓圈 */
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #4a90e2;
+        }
     </style>
 </head>
 
@@ -120,6 +162,11 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
         <h1 style="cursor:pointer;" onclick="window.location.href='student.php'">學生/教職員首頁</h1>
 
         <div id="top-right-box">
+            <div class="cart-container" onclick="window.location.href='student_cart.php'">
+                <i class="bi bi-cart-fill cart-icon"></i>
+                <span id="global-cart-count" class="cart-badge"><?= $total_cart_count ?></span>
+            </div>
+
             <div class="user-account"><?php echo htmlspecialchars($account); ?></div>
             <div class="dropdown">
                 <button class="dropbtn" onclick="toggleDropdown()">
@@ -129,7 +176,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
                     <input type="button" value="個人設定 ▼" onclick="toggleSubMenu()">
                     <div id="subMenu" class="sub-dropdown">
                         <input type="button" value="基本資料" onclick="window.location='student_information.php'">
-                        <input type="button" value="歷史訂單" onclick="alert('歷史訂單')">
+                        <input type="button" value="歷史訂單" onclick="window.location='student_history.php'">
                         <input type="button" value="評價紀錄" onclick="alert('評價紀錄')">
                     </div>
                     <input type="button" value="問題" onclick="window.location='student_report.php'">
@@ -140,21 +187,22 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
     </div>
 </body>
 <script>
+    // 下拉選單邏輯
     function toggleSubMenu() {
         var sub = document.getElementById("subMenu");
         sub.style.display = (sub.style.display === "block") ? "none" : "block";
     }
-
     function toggleDropdown() {
         var dropdown = document.getElementById("myDropdown");
         dropdown.style.display = (dropdown.style.display === "block") ? "none" : "block";
     }
-
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (!event.target.closest('.dropdown')) {
             document.getElementById("myDropdown").style.display = "none";
         }
     }
+    // 控制數量 (UpdateQty) 的 JS 不需要放在這裡，因為這是 Header，
+    // UpdateQty 邏輯應該在 student_menumanage.php 裡面。
 </script>
 
 </html>

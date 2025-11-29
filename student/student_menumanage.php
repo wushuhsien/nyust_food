@@ -2,34 +2,97 @@
 session_start();
 include "../db.php"; // 確保連結資料庫
 
+// 設定時區為台灣時間 (重要：否則篩選營業時間會不準)
+date_default_timezone_set("Asia/Taipei");
+
+// ==========================================
+// ★ 1. AJAX 處理區塊 (維持不變)
+// ==========================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_cart') {
+    
+    // 初始化購物車
+    if (!isset($_SESSION['cart'])) {
+        $_SESSION['cart'] = [];
+    }
+
+    $menu_id = isset($_POST['menu_id']) ? intval($_POST['menu_id']) : 0;
+    $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 0;
+
+    if ($menu_id > 0) {
+        if ($quantity > 0) {
+            $_SESSION['cart'][$menu_id] = $quantity;
+        } else {
+            unset($_SESSION['cart'][$menu_id]);
+        }
+    }
+
+    $total_items = 0;
+    foreach ($_SESSION['cart'] as $qty) {
+        $total_items += $qty;
+    }
+    
+    echo $total_items;
+    exit;
+}
+// ==========================================
+
 $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
-// 1. 取得所有店家類別 (用於上方分類按鈕)
+// 取得所有店家類別
 $types_sql = "SELECT * FROM storetype";
 $types_result = $link->query($types_sql);
 
-// 2. 處理搜尋與篩選邏輯
+// 處理搜尋與篩選
 $search_query = isset($_GET['q']) ? $_GET['q'] : '';
 $type_filter = isset($_GET['tid']) ? intval($_GET['tid']) : 0;
 
-// 準備撈取店家的 SQL (預設撈全部)
-$sql = "SELECT * FROM store WHERE 1=1";
+// 準備撈取店家的 SQL
+$sql = "SELECT * FROM store s WHERE 1=1";
 $params = [];
 $types = "";
 
-// 如果有搜尋名稱
+// 搜尋關鍵字邏輯
 if (!empty($search_query)) {
-    $sql .= " AND name LIKE ?";
-    $params[] = "%" . $search_query . "%";
-    $types .= "s";
+    $sql .= " AND (
+                s.name LIKE ? 
+                OR EXISTS (
+                    SELECT 1 FROM menu m 
+                    WHERE m.account = s.account 
+                    AND m.name LIKE ?
+                )
+              )";
+    $term = "%" . $search_query . "%";
+    $params[] = $term;
+    $params[] = $term;
+    $types .= "ss";
 }
 
-// 如果有選類別
+// 店家類別篩選
 if ($type_filter > 0) {
-    $sql .= " AND storetype_id = ?";
+    $sql .= " AND s.storetype_id = ?";
     $params[] = $type_filter;
     $types .= "i";
 }
+
+// ★ 新增：營業時間篩選邏輯
+// 只有在當前時間有營業的店家才會被撈出來
+$current_weekday = date('w'); // 取得星期幾 (0=週日, 1=週一, ... 6=週六)
+$current_time = date('H:i:s'); // 取得目前時間 (HH:mm:ss)
+
+// 注意：如果你的資料庫 weekday 存的是 1-7 (1=週一, 7=週日)，這邊可能需要轉換
+// 這裡預設你的資料庫 weekday 也是跟 PHP 一樣 (0=週日 ~ 6=週六)
+$sql .= " AND EXISTS (
+            SELECT 1 FROM storehours h
+            WHERE h.account = s.account
+            AND h.weekday = ?
+            AND h.open_time <= ?
+            AND h.close_time >= ?
+          )";
+
+$params[] = $current_weekday;
+$params[] = $current_time;
+$params[] = $current_time;
+$types .= "iss"; // integer, string, string
 
 $stmt = $link->prepare($sql);
 if (!empty($params)) {
@@ -37,6 +100,9 @@ if (!empty($params)) {
 }
 $stmt->execute();
 $store_result = $stmt->get_result();
+
+// 取得目前購物車資料
+$cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
 ?>
 
 <!DOCTYPE html>
@@ -507,7 +573,22 @@ $store_result = $stmt->get_result();
 </head>
 
 <body>
-    <?php include "student_menu.php"; ?>
+<?php include "student_menu.php"; ?>
+    
+    <?php
+    $total_in_cart = 0;
+    if(isset($_SESSION['cart'])) {
+        foreach($_SESSION['cart'] as $q) $total_in_cart += $q;
+    }
+    ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var badge = document.getElementById('global-cart-count');
+            if(badge) badge.innerText = "<?= $total_in_cart ?>";
+        });
+    </script>
+    
+    <br>
     <br>
     <div class="search-section">
         <form action="" method="GET" class="search-bar">
@@ -544,13 +625,8 @@ $store_result = $stmt->get_result();
     <div id="store-list">
         <?php
         $has_any_store_printed = false;
-
         if ($store_result->num_rows > 0):
-            ?>
-            <?php while ($store = $store_result->fetch_assoc()): ?>
-
-                <?php
-                // 1. 撈取該店家的菜單
+            while ($store = $store_result->fetch_assoc()):
                 $store_account = $store['account'];
                 $menu_sql = "SELECT * FROM menu WHERE account = ? ORDER BY type, price";
                 $menu_stmt = $link->prepare($menu_sql);
@@ -562,29 +638,26 @@ $store_result = $stmt->get_result();
                     $menu_stmt->close();
                     continue;
                 }
-
                 $has_any_store_printed = true;
 
-                // 2. 資料分組
                 $grouped_menu = [];
                 while ($row = $menu_result->fetch_assoc()) {
                     $type = $row['type'];
-                    if (empty($type))
-                        $type = "其他";
+                    if (empty($type)) $type = "其他";
                     $grouped_menu[$type][] = $row;
                 }
                 $menu_stmt->close();
-
-                // 產生隨機 ID 避免錨點衝突 (用店家 ID)
                 $store_uid = "store_" . $store['store_id'];
                 ?>
 
                 <div class="store-container">
-
                     <div class="store-title">
                         <span><i class="bi bi-shop"></i> <?= htmlspecialchars($store['name']) ?></span>
+                        
                         <small style="color:#888; font-size:14px; font-weight:normal;">
                             <i class="bi bi-telephone"></i> <?= htmlspecialchars($store['phone']) ?>
+                            <span style="margin: 0 8px; color:#ccc;">|</span>
+                            <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($store['address']) ?>
                         </small>
                     </div>
 
@@ -598,92 +671,64 @@ $store_result = $stmt->get_result();
 
                     <div class="menu-content-list">
                         <?php foreach ($grouped_menu as $type => $items): ?>
-
                             <div id="cat-<?= $store_uid ?>-<?= htmlspecialchars($type) ?>" class="menu-category-header">
                                 <?= htmlspecialchars($type) ?>
                             </div>
-
                             <div class="menu-grid-2">
                                 <?php foreach ($items as $menu):
                                     $menu_id = $menu['menu_id'];
                                     $max_stock = $menu['stock'];
+                                    $current_qty_in_cart = isset($cart_data[$menu_id]) ? $cart_data[$menu_id] : 0;
                                     ?>
                                     <div class="menu-card-item">
-
                                         <div class="menu-info-left">
                                             <div class="menu-name-text"><?= htmlspecialchars($menu['name']) ?></div>
-
                                             <?php if (!empty($menu['description'])): ?>
-                                                <div style="font-size:13px; color:#999; margin-top:5px;">
-                                                    <?= htmlspecialchars($menu['description']) ?>
-                                                </div>
+                                                <div style="font-size:13px; color:#999; margin-top:5px;"><?= htmlspecialchars($menu['description']) ?></div>
                                             <?php endif; ?>
-
                                             <div class="menu-price-text">$<?= number_format($menu['price']) ?></div>
-
                                             <div class="menu-badges">
                                                 <span class="badge-stock">庫存: <?= $max_stock ?></span>
                                                 <?php if (!empty($menu['cook_time']) && $menu['cook_time'] != '00:00:00'): ?>
-                                                    <span class="badge-time">
-                                                        <i class="bi bi-clock"></i> <?= substr($menu['cook_time'], 3, 2) ?>分
-                                                    </span>
+                                                    <span class="badge-time"><i class="bi bi-clock"></i> <?= substr($menu['cook_time'], 3, 2) ?>分</span>
                                                 <?php endif; ?>
                                             </div>
-
                                             <?php if (!empty($menu['note'])): ?>
-                                                <div class="menu-note">
-                                                    <i class="bi bi-info-circle-fill"></i> 備註：<?= htmlspecialchars($menu['note']) ?>
-                                                </div>
+                                                <div class="menu-note"><i class="bi bi-info-circle-fill"></i> 備註：<?= htmlspecialchars($menu['note']) ?></div>
                                             <?php endif; ?>
                                         </div>
 
                                         <div class="menu-action-right">
-
                                             <?php if ($max_stock > 0): ?>
                                                 <div class="qty-control-pill">
-                                                    <button type="button" class="qty-btn"
-                                                        onclick="updateQty(<?= $menu_id ?>, -1, <?= $max_stock ?>)">−</button>
-                                                    <input type="text" id="qty-<?= $menu_id ?>" class="qty-display" value="0" readonly>
-                                                    <button type="button" class="qty-btn"
-                                                        onclick="updateQty(<?= $menu_id ?>, 1, <?= $max_stock ?>)">+</button>
+                                                    <button type="button" class="qty-btn" onclick="updateQty(<?= $menu_id ?>, -1, <?= $max_stock ?>)">−</button>
+                                                    <input type="text" id="qty-<?= $menu_id ?>" class="qty-display" value="<?= $current_qty_in_cart ?>" readonly>
+                                                    <button type="button" class="qty-btn" onclick="updateQty(<?= $menu_id ?>, 1, <?= $max_stock ?>)">+</button>
                                                 </div>
                                             <?php else: ?>
                                                 <span class="sold-out-text">已售完</span>
                                             <?php endif; ?>
-
-                                            <div class="menu-img-box">
-                                                <i class="bi bi-cup-hot"></i>
-                                            </div>
-
+                                            <div class="menu-img-box"><i class="bi bi-cup-hot"></i></div>
                                         </div>
-
                                     </div>
                                 <?php endforeach; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>
-
                 </div>
             <?php endwhile; ?>
-
-            <?php if (!$has_any_store_printed): ?>
-                <div style="text-align:center; padding:50px; color:#666;">
-                    <i class="bi bi-clipboard-x" style="font-size:48px; display:block; margin-bottom:10px;"></i>
-                    符合條件的店家目前皆尚未上架菜單。
-                </div>
-            <?php endif; ?>
-
         <?php else: ?>
             <div style="text-align:center; padding:50px; color:#666;">
                 <i class="bi bi-search" style="font-size:48px; display:block; margin-bottom:10px;"></i>
-                找不到符合條件的店家
+                <p>找不到符合條件或目前營業中的店家</p>
+                <small>(可能是目前非營業時段)</small>
             </div>
         <?php endif; ?>
     </div>
 
 </body>
 <script>
-    // 原本的 Dropdown JS 邏輯
+    // --- 下拉選單邏輯 (維持不變) ---
     function toggleSubMenu() {
         var sub = document.getElementById("subMenu");
         sub.style.display = (sub.style.display === "block") ? "none" : "block";
@@ -700,19 +745,22 @@ $store_result = $stmt->get_result();
         }
     }
 
-    // ★ 新增：控制數量的 JavaScript 函式
-    function updateQty(menuId, change, maxStock) {
-        // 抓取該商品的 input 欄位
-        var qtyInput = document.getElementById('qty-' + menuId);
+    // --- ★ 重點修改：數量控制與購物車連動 ---
 
-        // 確保欄位存在
+    function updateQty(menuId, change, maxStock) {
+        // 1. 抓取該商品的 input 欄位
+        var qtyInput = document.getElementById('qty-' + menuId);
+        
+        // 防呆：如果找不到欄位就結束
         if (!qtyInput) return;
 
-        // 計算新數值
+        // 2. 取得「變動前」的數量
         var currentQty = parseInt(qtyInput.value) || 0;
+        
+        // 3. 計算「預期的新數量」
         var newQty = currentQty + change;
 
-        // 檢查最小與最大限制
+        // 4. 檢查限制 (不能小於 0，不能大於庫存)
         if (newQty < 0) {
             newQty = 0;
         }
@@ -721,11 +769,85 @@ $store_result = $stmt->get_result();
             newQty = maxStock;
         }
 
-        // 更新顯示
+        // 5. ★ 關鍵：計算「實際變動量」
+        // 例如：原本是 0，按 -1，變成 0。實際變動量 = 0 - 0 = 0 (購物車不變)
+        // 例如：原本是 0，按 +1，變成 1。實際變動量 = 1 - 0 = +1 (購物車 +1)
+        var actualChange = newQty - currentQty;
+
+        // 6. 更新該商品的輸入框顯示
         qtyInput.value = newQty;
 
-        // (可以在這裡加 AJAX 程式碼，將數量同步到後端購物車 Session)
-        // console.log("餐點 ID: " + menuId + ", 數量更新為: " + newQty);
+        // 7. 如果實際數量有變，就更新右上角購物車
+        if (actualChange !== 0) {
+            updateGlobalCartCount(actualChange);
+        }
+
+        // (進階：這裡可以加 AJAX 去通知後端 session 更新購物車)
+        // updateSessionCart(menuId, newQty);
+    }
+
+    // ★ 輔助函式：更新右上角購物車總數
+    function updateGlobalCartCount(diff) {
+        var badge = document.getElementById('global-cart-count');
+        
+        // 確保 header 有載入且抓得到這個 ID
+        if (badge) {
+            var currentTotal = parseInt(badge.innerText) || 0;
+            var newTotal = currentTotal + diff;
+
+            // 確保總數不會變負的
+            if (newTotal < 0) newTotal = 0;
+
+            badge.innerText = newTotal;
+            
+            // 加一個簡單的縮放動畫，讓使用者注意到數字變了
+            badge.style.transition = "transform 0.2s";
+            badge.style.transform = "scale(1.5)";
+            setTimeout(function() {
+                badge.style.transform = "scale(1)";
+            }, 200);
+        }
+    }
+
+    // ★ 修改後的 AJAX 邏輯 (Fetch 同一個檔案)
+    function updateQty(menuId, change, maxStock) {
+        var qtyInput = document.getElementById('qty-' + menuId);
+        if (!qtyInput) return;
+
+        var currentQty = parseInt(qtyInput.value) || 0;
+        var newQty = currentQty + change;
+
+        if (newQty < 0) newQty = 0;
+        if (newQty > maxStock) {
+            alert("已達庫存上限！");
+            newQty = maxStock;
+        }
+
+        // 1. 前端先更新數字，給使用者即時回饋
+        qtyInput.value = newQty;
+
+        // 2. 準備 AJAX 資料
+        var formData = new FormData();
+        formData.append('action', 'update_cart'); // ★ 告訴 PHP 我要執行更新購物車
+        formData.append('menu_id', menuId);
+        formData.append('quantity', newQty);
+
+        // 3. 發送到當前頁面 (student_menumanage.php)
+        fetch('student_menumanage.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(totalItems => {
+            // 4. 更新右上角購物車
+            var badge = document.getElementById('global-cart-count');
+            if (badge) {
+                badge.innerText = totalItems;
+                badge.style.transform = "scale(1.5)";
+                setTimeout(() => badge.style.transform = "scale(1)", 200);
+            }
+        })
+        .catch(error => console.error('Error:', error));
     }
 </script>
 
