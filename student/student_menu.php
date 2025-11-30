@@ -1,4 +1,5 @@
 <?php
+include "../db.php";  // 引入資料庫連線
 // 判斷 session 是否已啟動，若無則啟動 (防止重複啟動錯誤)
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -12,6 +13,18 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     foreach ($_SESSION['cart'] as $qty) {
         $total_cart_count += intval($qty);
     }
+}
+
+// 設定時區
+date_default_timezone_set('Asia/Taipei');
+
+// 如果帳號存在，寫入 OUT 動作
+if ($account !== '') {
+    $currentTime = date("Y-m-d H:i:s");
+    $insertSql = "INSERT INTO accountaction (time, action, account) VALUES (?, 'OUT', ?)";
+    $insertStmt = $link->prepare($insertSql);
+    $insertStmt->bind_param("ss", $currentTime, $account);
+    $insertStmt->execute();
 }
 ?>
 <!DOCTYPE html>

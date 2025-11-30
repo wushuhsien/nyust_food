@@ -1,5 +1,18 @@
 <?php
+include "../db.php";  // 引入資料庫連線
 $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
+
+// 設定時區
+date_default_timezone_set('Asia/Taipei');
+
+// 如果帳號存在，寫入 OUT 動作
+if ($account !== '') {
+    $currentTime = date("Y-m-d H:i:s");
+    $insertSql = "INSERT INTO accountaction (time, action, account) VALUES (?, 'OUT', ?)";
+    $insertStmt = $link->prepare($insertSql);
+    $insertStmt->bind_param("ss", $currentTime, $account);
+    $insertStmt->execute();
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
