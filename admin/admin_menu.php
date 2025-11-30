@@ -96,6 +96,7 @@ $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
                 <div class="dropdown">
                     <a href="student_material.php">學生/教職員</a>
                     <a href="store_material.php">店家</a>
+                    <a href="admin_store_material.php">待審核店家</a>
                 </div>
             </div>
             <div class="menu-item">公告管理

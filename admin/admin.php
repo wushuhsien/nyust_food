@@ -41,7 +41,7 @@ include "../db.php";  // 引入資料庫連線
     <!-- 新增店家帳號待審核區塊 -->
     <div class="announcement-box">
         <div class="announcement-title">
-            <a href="view_announcement.php" style="text-decoration:none; color:#b36b00;">📢 待審核店家帳號</a>
+            <a href="admin_store_material.php" style="text-decoration:none; color:#b36b00;">📢 待審核店家帳號</a>
         </div>
         <!-- 列出店家待審核帳號、店名 -->
         <div class="announcement-content">
@@ -49,7 +49,8 @@ include "../db.php";  // 引入資料庫連線
             $sql = "SELECT a.`account`, b.`name` 
                 FROM `account` AS a 
                 INNER JOIN `store` AS b ON a.`account` = b.`account` 
-                WHERE a.`role` = 3";
+                WHERE a.`role` = 3
+                GROUP BY a.`account";
             $result = $link->query($sql);
 
             if ($result && $result->num_rows > 0) {

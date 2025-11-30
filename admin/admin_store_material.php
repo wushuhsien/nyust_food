@@ -5,20 +5,20 @@ include "../db.php";  // 引入資料庫連線
 //修改帳號狀態
 if (isset($_POST['update'])) {
     $account = $_POST['account'];
-    // $role = $_POST['role'];
+    $role = $_POST['role'];
     $permission = $_POST['permission'];
     $stop_reason = trim($_POST['stop_reason'] ?? '');
 
     if ($permission == 1 && $stop_reason !== "") {
-        $stmt = $link->prepare("UPDATE `account` SET `permission`=?, `stop_reason`=? WHERE `account`=?");
-        $stmt->bind_param("iss", $permission, $stop_reason, $account);
+        $stmt = $link->prepare("UPDATE `account` SET `role`=?, `permission`=?, `stop_reason`=? WHERE `account`=?");
+        $stmt->bind_param("iiss", $role, $permission, $stop_reason, $account);
     } else {
-        $stmt = $link->prepare("UPDATE `account` SET `permission`=?, `stop_reason`=NULL WHERE `account`=?");
-        $stmt->bind_param("is", $permission, $account);
+        $stmt = $link->prepare("UPDATE `account` SET `role`=?, `permission`=?, `stop_reason`=NULL WHERE `account`=?");
+        $stmt->bind_param("iis", $role, $permission, $account);
     }
 
     if ($stmt->execute()) {
-        echo "<script>alert('帳號 $account 狀態修改成功'); window.location='store_material.php';</script>";
+        echo "<script>alert('帳號 $account 狀態修改成功'); window.location='admin_store_material.php';</script>";
         exit;
     } else {
         echo "<script>alert('更新失敗: " . $link->error . "'); history.back();</script>";
@@ -124,7 +124,7 @@ if (isset($_POST['add_store'])) {
         }
 
         $link->commit();
-        echo "<script>alert('新增店家資料成功！'); window.location='store_material.php';</script>";
+        echo "<script>alert('新增店家資料成功！'); window.location='admin_store_material.php';</script>";
         exit;
     } catch (Exception $e) {
         $link->rollback();
@@ -138,7 +138,7 @@ if (isset($_POST['add_store'])) {
 
 <head>
     <meta charset="UTF-8">
-    <title>店家資料</title>
+    <title>待審核店家帳號</title>
 
     <style>
         :root {
@@ -744,7 +744,7 @@ if (isset($_POST['add_store'])) {
     <?php include "admin_menu.php"; ?>
 
     <div class="container">
-        <h2>店家資料管理</h2>
+        <h2>待審核店家帳號</h2>
         <!--查詢-->
         <div class="search-row">
             <form method="POST" class="search-box">
@@ -792,6 +792,7 @@ if (isset($_POST['add_store'])) {
                                 <?php endforeach; ?>
                             </ul>
                         </div>
+
 
                         <input type="text" name="name" placeholder="店名">
                         <input type="text" name="description" placeholder="描述">
@@ -857,7 +858,7 @@ if (isset($_POST['add_store'])) {
                                 INNER JOIN store AS b ON a.account = b.account
                                 INNER JOIN storetype AS c ON b.storetype_id = c.storetype_id
                                 LEFT JOIN storehours AS d ON a.account = d.account
-                                WHERE a.role=1 AND b.name LIKE '%$query_name%'
+                                WHERE a.role=3 AND b.name LIKE '%$query_name%'
                                 ORDER BY a.account, d.weekday";
                 } else {
                     $sql = "SELECT a.account, b.name AS store_name, b.description, b.address, b.phone, b.email,
@@ -867,7 +868,7 @@ if (isset($_POST['add_store'])) {
                                 INNER JOIN store AS b ON a.account = b.account
                                 INNER JOIN storetype AS c ON b.storetype_id = c.storetype_id
                                 LEFT JOIN storehours AS d ON a.account = d.account
-                                WHERE a.role=1 
+                                WHERE a.role=3
                                 ORDER BY a.account, d.weekday";
                 }
 
@@ -897,7 +898,7 @@ if (isset($_POST['add_store'])) {
 
                 /* 輸出表格 */
                 if (empty($stores)) {
-                    echo "<tr><td colspan='14' style='text-align:center;color:#888'>無店家資料</td></tr>";
+                    echo "<tr><td colspan='14' style='text-align:center;color:#888'>無店家帳號需審核</td></tr>";
                 } else {
                     $i = 1;
 
@@ -928,13 +929,13 @@ if (isset($_POST['add_store'])) {
                             </td> -->
 
                             <!-- <td><?= $row['created_time'] ?></td> -->
-                            <td><?= $row['role'] == 1 ? '店家' : '' ?></td>
-                            <!-- <td>
+
+                            <td>
                                 <select name="role" class="select-style" style="width: 150px;">
                                     <option value="1" <?= ($row['role'] == 1 ? 'selected' : '') ?>>店家</option>
                                     <option value="3" <?= ($row['role'] == 3 ? 'selected' : '') ?>>店家註冊審核中</option>
                                 </select>
-                            </td> -->
+                            </td>
 
                             <td>
                                 <select name="permission" class="select-style perm-select" style="width: 150px;"
@@ -955,6 +956,8 @@ if (isset($_POST['add_store'])) {
                                     <div class="btn-group">
                                         <form method="POST" onsubmit="return submitPermissionForm('<?= $row['account'] ?>')">
                                             <input type="hidden" name="account" value="<?= $row['account'] ?>">
+                                            <input type="hidden" name="role" id="role_input_<?= $row['account'] ?>"
+                                                value="<?= $row['role'] ?>">
                                             <input type="hidden" name="permission" id="perm_input_<?= $row['account'] ?>"
                                                 value="<?= $row['permission'] ?>">
                                             <input type="hidden" name="stop_reason" id="stop_input_<?= $row['account'] ?>"
@@ -986,16 +989,16 @@ if (isset($_POST['add_store'])) {
                                     </div>
                                 </div>
 
-                                <hr class="divider"> <!-- 分隔線 -->
+                                <!-- <hr class="divider"> 分隔線 -->
 
-                                <div class="btn-group">
+                                <!-- <div class="btn-group">
                                     <button type="button" class="btn-order"
                                         onclick="location.href='store_material_history.php?account=<?= $row['account'] ?>'">歷史訂單</button>
-                                    <!-- <button class="btn-rate">評價</button> -->
+                                    <button class="btn-rate">評價</button>
                                     <button class="btn-chart">圖表</button>
                                     <button type="button" class="btn-log"
                                         onclick="window.location.href='<?= $row['logUrl'] ?>'">日誌</button>
-                                </div>
+                                </div> -->
                             </td>
                         </tr>
                 <?php
@@ -1051,12 +1054,14 @@ if (isset($_POST['add_store'])) {
 </body>
 <script>
     function submitPermissionForm(account) {
-        const tr = document.querySelector(`input[name="account"][value="${account}"]`).closest('tr');
-        const permSelect = tr.querySelector('select[name="permission"]');
-        const stopInput = tr.querySelector(`input[name="stop_reason"]`);
-        const permInput = tr.querySelector(`input[name="permission"]`);
+        const permSelect = document.getElementById("perm_" + account);
+        const stopInput = document.getElementById("stop_input_" + account);
+        const roleSelect = document.querySelector(`select[name="role"][data-account="${account}"]`);
+        const roleInput = document.getElementById("role_input_" + account);
+        const permInput = document.getElementById("perm_input_" + account);
 
         // 同步值到 hidden input
+        roleInput.value = roleSelect.value;
         permInput.value = permSelect.value;
 
         // 只有從非停用變成停用才要求輸入原因
@@ -1068,7 +1073,7 @@ if (isset($_POST['add_store'])) {
                 alert("必須填寫停用原因！");
                 return false; // 阻止送出
             }
-            stopInput.value = reason.trim();
+            stopInput.value = reason.trim(); // ✅ 這裡一定要改 hidden input 的 value
         } else if (permSelect.value !== "1") {
             stopInput.value = ""; // 啟用就清空
         }
@@ -1076,6 +1081,12 @@ if (isset($_POST['add_store'])) {
         return true; // 允許送出
     }
 
+
+    // 將 role select 加上 data-account 屬性，方便 JS 讀取
+    document.querySelectorAll('select[name="role"]').forEach(sel => {
+        const tr = sel.closest('tr');
+        sel.dataset.account = tr.querySelector('td:nth-child(2)').innerText;
+    });
 
     function validateHours() {
         const days = [1, 2, 3, 4, 5, 6, 7];

@@ -6,16 +6,9 @@ include "../db.php";  // 引入資料庫連線
 if (isset($_POST['update_permission'])) {
     $account = $_POST['account'];
     $permission = $_POST['permission'];
-    $stop_reason = trim($_POST['stop_reason']);
 
-    if ($permission == 1 && $stop_reason !== "") {
-        $stmt = $link->prepare("UPDATE `account` SET `permission`=?, `stop_reason`=? WHERE `account`=?");
-        $stmt->bind_param("iss", $permission, $stop_reason, $account);
-    } else {
-        $stmt = $link->prepare("UPDATE `account` SET `permission`=?, `stop_reason`=NULL WHERE `account`=?");
-        $stmt->bind_param("is", $permission, $account);
-    }
-
+    $stmt = $link->prepare("UPDATE `account` SET `permission`=? WHERE `account`=?");
+    $stmt->bind_param("is", $permission, $account);
     if ($stmt->execute()) {
         echo "<script>alert('帳號 $account 狀態修改成功'); window.location='student_material.php';</script>";
         exit;
@@ -24,7 +17,6 @@ if (isset($_POST['update_permission'])) {
         exit;
     }
 }
-
 
 if (isset($_POST['add_student'])) {
     $username = trim($_POST['username']);
@@ -351,10 +343,11 @@ if (isset($_POST['add_student'])) {
 
                             <td>
                                 <form method="POST" class="status-form">
-                                    <select id="perm_<?= $row['account'] ?>" class="select-style" style="width:80px;">
+                                    <select name="permission">
                                         <option value="0" <?= ($row['permission'] == 0 ? 'selected' : '') ?>>啟用</option>
                                         <option value="1" <?= ($row['permission'] == 1 ? 'selected' : '') ?>>停用</option>
                                     </select>
+                                    <input type="hidden" name="account" value="<?= htmlspecialchars($row['account']) ?>">
                                 </form>
                             </td>
 
@@ -363,12 +356,7 @@ if (isset($_POST['add_student'])) {
                             <td>
                                 <div class="action-box">
                                     <div class="btn-group">
-                                        <form method="POST" onsubmit="return submitPermissionForm('<?= $row['account'] ?>')">
-                                            <input type="hidden" name="account" value="<?= $row['account'] ?>">
-                                            <input type="hidden" name="permission" id="perm_input_<?= $row['account'] ?>">
-                                            <input type="hidden" name="stop_reason" id="stop_input_<?= $row['account'] ?>">
-                                            <button type="submit" name="update_permission" class="btn-edit">修改</button>
-                                        </form>
+                                        <button type="submit" form="status-form" class="btn-edit">修改</button>
                                     </div>
 
                                     <hr class="divider">
@@ -393,26 +381,5 @@ if (isset($_POST['add_student'])) {
         </table>
     </div>
 </body>
-
-<script>
-    function submitPermissionForm(account) {
-        const selectVal = document.getElementById("perm_" + account).value;
-
-        // 把 select 的值塞入 form hidden
-        document.getElementById("perm_input_" + account).value = selectVal;
-
-        if (selectVal == "1") { // 停用
-            let reason = prompt("請輸入停用原因：");
-            if (reason === null || reason.trim() === "") {
-                alert("必須填寫停用原因！");
-                return false; // 取消 submit
-            }
-            document.getElementById("stop_input_" + account).value = reason.trim();
-        } else {
-            document.getElementById("stop_input_" + account).value = "";
-        }
-        return true; // 允許送出
-    }
-</script>
 
 </html>
