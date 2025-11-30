@@ -883,6 +883,18 @@ if (isset($_POST['add_store'])) {
                     if (!isset($stores[$acc])) {
                         $stores[$acc] = $row;
                         $stores[$acc]['hours'] = [];
+                        $stores[$acc]['types'] = [];  // ⭐ 新增：類型陣列
+                        $stores[$acc]['logUrl'] = "accountaction.php?account=" . urlencode($acc);
+                    }
+
+                    // ⭐ 多類型：將 storetype_name 推入陣列（避免重複）
+                    if (!in_array($row['type_name'], $stores[$acc]['types'])) {
+                        $stores[$acc]['types'][] = $row['type_name'];
+                    }
+
+                    if (!isset($stores[$acc])) {
+                        $stores[$acc] = $row;
+                        $stores[$acc]['hours'] = [];
                         $stores[$acc]['logUrl'] = "accountaction.php?account=" . urlencode($acc); //存入 URL
                     }
 
@@ -911,7 +923,12 @@ if (isset($_POST['add_store'])) {
                             <td><?= $row['address'] ?></td>
                             <td><?= $row['phone'] ?></td>
                             <td><?= $row['email'] ?></td> -->
-                            <td><?= $row['type_name'] ?></td>
+                            <!-- <td><?= $row['type_name'] ?></td> -->
+                            <td>
+                                <?php foreach ($row['types'] as $t): ?>
+                                    <?= $t ?><br>
+                                <?php endforeach; ?>
+                            </td>
 
                             <!-- 營業時間 -->
                             <!-- <td style="text-align:center; vertical-align:middle;">
@@ -972,7 +989,7 @@ if (isset($_POST['add_store'])) {
                                                                         address: "<?= addslashes($row["address"]) ?>",
                                                                         phone: "<?= $row["phone"] ?>",
                                                                         email: "<?= $row["email"] ?>",
-                                                                        type: "<?= addslashes($row["type_name"]) ?>",
+                                                                        type: <?= json_encode($row["types"], JSON_UNESCAPED_UNICODE) ?>,
                                                                         created: "<?= $row["created_time"] ?>",
                                                                         permission: <?= $row["permission"] ?>,
                                                                         role: <?= $row["role"] ?>,
@@ -1143,7 +1160,17 @@ if (isset($_POST['add_store'])) {
         document.getElementById("cAddr").innerText = data.address;
         document.getElementById("cPhone").innerText = data.phone;
         document.getElementById("cEmail").innerText = data.email;
-        document.getElementById("cType").innerText = data.type;
+
+        // document.getElementById("cType").innerText = data.type;
+        // 假設 data.type 是一個陣列，例如 ["早餐店", "便當店"]
+        let typeText = "";
+        if (data.type && data.type.length > 0) {
+            typeText = data.type.join("<br>"); // 用 <br> 換行
+        } else {
+            typeText = "未設定";
+        }
+        document.getElementById("cType").innerHTML = typeText;
+
         document.getElementById("cCreated").innerText = data.created;
 
         // 0/1 轉中文
