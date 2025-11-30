@@ -74,7 +74,7 @@ include "../db.php";  // 引入資料庫連線
     <!-- 系統問題區塊 -->
     <div class="announcement-box">
         <div class="announcement-title">
-            <a href="view_issues.php" style="text-decoration:none; color:#b36b00;">⚠️ 待處理系統問題</a>
+            <a href="admin_report.php" style="text-decoration:none; color:#b36b00;">⚠️ 待處理系統問題</a>
         </div>
         <div class="announcement-content">
             <?php
