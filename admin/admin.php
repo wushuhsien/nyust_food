@@ -50,7 +50,7 @@ include "../db.php";  // 引入資料庫連線
                 FROM `account` AS a 
                 INNER JOIN `store` AS b ON a.`account` = b.`account` 
                 WHERE a.`role` = 3
-                GROUP BY a.`account";
+                GROUP BY a.`account`"; // <--- 這裡修正了，補上反引號
             $result = $link->query($sql);
 
             if ($result && $result->num_rows > 0) {
