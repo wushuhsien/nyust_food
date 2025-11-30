@@ -336,7 +336,7 @@ if (isset($_POST['add_store'])) {
         /* 按鈕群組 */
         .btn-group {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             justify-items: center;
         }
 
@@ -979,7 +979,7 @@ if (isset($_POST['add_store'])) {
                                                                         stopReason: "<?= addslashes($row["stop_reason"]) ?>",
                                                                         hours: <?= json_encode($row["hours"], JSON_UNESCAPED_UNICODE) ?>
                                                                     })'>
-                                                查看詳細
+                                                查看細項
                                             </button>
 
                                         </form>

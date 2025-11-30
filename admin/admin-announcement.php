@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
                 <input type="date" id="start_date" name="start_date" value="<?php echo $_POST['start_date'] ?? ''; ?>">
                 <label>結束日期：</label>
                 <input type="date" id="end_date" name="end_date" value="<?php echo $_POST['end_date'] ?? ''; ?>">
-                <input type="text" id="query_name" name="query_name" placeholder="查詢主題">
+                <input type="text" id="query_name" name="query_name" placeholder="查詢內容">
                 <button type="submit" id="query_btn" style="padding:6px 12px; background:#8B5E3C; color:white; border:none; border-radius:6px; cursor:pointer;">查詢</button>
             </form>
         </div>
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
 
         // ✅ 主題模糊查詢
         if (!empty($query)) {
-            $conditions[] = "topic LIKE ?";
+            $conditions[] = "description LIKE ?";
             $params[] = "%" . $query . "%";
             $types .= "s";
         }
