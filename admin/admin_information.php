@@ -141,7 +141,7 @@ if (isset($_POST['update'])) {
 
             <div class="form-group">
                 <label>帳號</label>
-                <input type="text" name="username" value="<?= htmlspecialchars($row['account']) ?>" readonly style="background-color:#e5e7eb; color:#6b7280; cursor:not-allowed;">
+                <input type="text" name="username" value="<?php echo htmlspecialchars($account); ?>" readonly style="background-color:#e5e7eb; color:#6b7280; cursor:not-allowed;">
             </div>
 
 

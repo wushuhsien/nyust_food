@@ -28,7 +28,7 @@ if (isset($_POST['update'])) {
                 `email`=?
             WHERE `student_id`=?";
     $stmt = $link->prepare($sql);
-    $stmt->bind_param("ssssssi", $name, $nickname, $phone, $email, $student_id);
+    $stmt->bind_param("ssssi", $name, $nickname, $phone, $email, $student_id);
     $stmt->execute();
 
     echo "<script>alert('基本資料修改成功！'); window.location='student.php';</script>";
@@ -41,8 +41,11 @@ $sql = "SELECT `student_id`, `name`, `nickname`, `phone`, `email`, `account`
 $stmt = $link->prepare($sql);
 $stmt->bind_param("s", $account);
 $stmt->execute();
-$result = $stmt->get_result();
-$row = $result->fetch_assoc();
+
+// 如果 get_result() 不可用，使用 bind_result
+$stmt->bind_result($student_id, $name, $nickname, $phone, $email, $account_db);
+$stmt->fetch();
+$stmt->close();
 ?>
 <!DOCTYPE html>
 <html>
@@ -136,16 +139,16 @@ $row = $result->fetch_assoc();
     <div class="container">
 
         <form method="POST">
-            <input type="hidden" name="student_id" value="<?= $row['student_id'] ?>">
+            <input type="hidden" name="student_id" value="<?= htmlspecialchars($student_id) ?>">
 
             <div class="form-group">
                 <label>姓名</label>
-                <input type="text" name="name" value="<?= htmlspecialchars($row['name']) ?>">
+                <input type="text" name="name" value="<?= htmlspecialchars($name ?? '') ?>">
             </div>
 
             <div class="form-group">
                 <label>暱稱</label>
-                <input type="text" name="nickname" value="<?= htmlspecialchars($row['nickname']) ?>">
+                <input type="text" name="nickname" value="<?= htmlspecialchars($nickname ?? '') ?>">
             </div>
 
             <div class="form-group">
@@ -153,12 +156,12 @@ $row = $result->fetch_assoc();
                 <input type="text" name="phone" required
                     pattern="(09\d{8}|0\d{1,3}?\d{5,8})"
                     title="請輸入手機（0912345678）或市話（例如0212345678）"
-                    value="<?= htmlspecialchars($row['phone']) ?>">
+                    value="<?= htmlspecialchars($phone ?? '') ?>">
             </div>
 
             <div class="form-group">
                 <label>電子郵件</label>
-                <input type="email" name="email" value="<?= htmlspecialchars($row['email']) ?>">
+                <input type="email" name="email" value="<?= htmlspecialchars($email ?? '') ?>">
             </div>
 
             <div class="btn-area">
