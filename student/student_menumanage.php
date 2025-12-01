@@ -135,13 +135,16 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
         }
 
         .search-bar {
-            flex: 1;
             display: flex;
+            justify-content: center;
+            align-items: center;
             gap: 5px;
+            margin: 0 auto;
+            width: 100%;
         }
 
         .search-bar input {
-            width: 100%;
+            width: 80%;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;

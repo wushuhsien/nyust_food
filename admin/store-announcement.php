@@ -234,8 +234,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
             while ($row = $result->fetch_assoc()) {
                 echo '<div class="announcement">';
                 echo '<div class="btn-area">';
-                echo '<button class="edit-btn" onclick="location.href=\'store-update-announcement.php?id=' . $row['announcement_id'] . '\'">修改</button>';
-                echo '<button class="delete-btn" onclick="deleteAnnouncement(' . $row['announcement_id'] . ')">刪除</button>';
+                // echo '<button class="edit-btn" onclick="location.href=\'store-update-announcement.php?id=' . $row['announcement_id'] . '\'">修改</button>';
+                // echo '<button class="delete-btn" onclick="deleteAnnouncement(' . $row['announcement_id'] . ')">刪除</button>';
                 echo '</div>';
                 echo '<p><strong>店家名稱：</strong>' . htmlspecialchars($row['store_name']) . '</p>';
                 echo '<p><strong>主題：</strong>' . htmlspecialchars($row['topic']) . '</p>';
