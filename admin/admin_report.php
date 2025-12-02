@@ -2,50 +2,50 @@
 session_start();
 include "../db.php";  // 引入資料庫連線
 
-// 讀取 store_report.json
-$jsonPath = "../JSON/admin_report.json";
-$jsonData = json_decode(file_get_contents($jsonPath), true);
+// 引入資料庫MongoDB
+require_once "../db_mongo.php";
 
 // 處理修改或刪除
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $report_id = intval($_POST['report_id'] ?? 0);
     $action = $_POST['action'] ?? '';
 
-    if ($report_id > 0) {
-        if ($action === "update") {
-            $status = $_POST['status'] ?? '';
+    if ($report_id > 0 && $action === "update") {
+        $status = $_POST['status'] ?? '';
 
-            //先查出該報告在資料庫的資料
-            $stmt2 = $link->prepare("SELECT account_student, description, time FROM report WHERE report_id=?");
-            $stmt2->bind_param("i", $report_id);
-            $stmt2->execute();
-            $result2 = $stmt2->get_result();
-            $target = $result2->fetch_assoc();
-            $stmt2->close();
+        //先查出該報告在資料庫的資料
+        $stmt2 = $link->prepare("SELECT account_student, description, time FROM report WHERE report_id=?");
+        $stmt2->bind_param("i", $report_id);
+        $stmt2->execute();
+        $result2 = $stmt2->get_result();
+        $target = $result2->fetch_assoc();
+        $stmt2->close();
 
-            //更新資料庫
-            $stmt = $link->prepare("UPDATE `report` SET `status`=? WHERE `report_id`=?");
-            $stmt->bind_param("si", $status, $report_id);
-            if ($stmt->execute()) {
-                //同步JSON
-                foreach ($jsonData as &$item) {
-                    if (
-                        $item["user_account"] == $target["account_student"] &&
-                        $item["description"] == $target["description"] &&
-                        $item["time"] == $target["time"]
-                    ) {
-                        $item["status"] = $status;
-                        break;
-                    }
-                }
-                file_put_contents($jsonPath, json_encode($jsonData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        //更新資料庫
+        $stmt = $link->prepare("UPDATE `report` SET `status`=? WHERE `report_id`=?");
+        $stmt->bind_param("si", $status, $report_id);
+        if ($stmt->execute()) {
+            // 更新 MongoDB (同步 status)
+            $filter = [
+                "user_account" => $target["account_student"],
+                "description"  => $target["description"],
+                "time"         => $target["time"]
+            ];
 
-                echo "<script>alert('修改成功！'); window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
-            } else {
-                echo "<script>alert('修改失敗！');</script>";
-            }
-            $stmt->close();
+            $bulk = new MongoDB\Driver\BulkWrite();
+            $bulk->update(
+                $filter,
+                ['$set' => ["status" => $status]],
+                ['multi' => true]
+            );
+
+            $manager->executeBulkWrite("store_db.admin_report", $bulk);
+
+            echo "<script>alert('修改成功！'); window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
+        } else {
+            echo "<script>alert('修改失敗！');</script>";
         }
+        $stmt->close();
     }
 }
 ?>
@@ -221,17 +221,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $images = [];
 
                     // 比對 JSON 找圖片
-                    foreach ($jsonData as $item) {
-                        if (
-                            $item["user_account"] == $row["account_student"] &&
-                            $item["description"] == $row["description"] &&
-                            $item["time"] == $row["time"]
-                        ) {
-                            $images = $item["images"];
-                            break;
+                    $filter2 = [
+                        "user_account" => $row["account_student"],
+                        "description"  => $row["description"],
+                        "time"         => $row["time"]
+                    ];
+
+                    $query2 = new MongoDB\Driver\Query($filter2);
+                    $cursor2 = $manager->executeQuery("store_db.admin_report", $query2);
+
+                    foreach ($cursor2 as $doc) {
+                        if (isset($doc->images)) {
+                            foreach ($doc->images as $img) {
+                                $images[] = $img;
+                            }
                         }
                     }
-                    $imgBtn = !empty($images) ? "<button class='search' onclick='showImages(" . htmlspecialchars(json_encode($images), ENT_QUOTES) . ")'>查看</button>" : "";
+                    $imgBtn = !empty($images)
+                        ? "<button class='search' onclick='showImages(" . json_encode($images) . ")'>查看</button>"
+                        : "";
 
                     // 狀態下拉選單
                     $statusOptions = ["未處理", "處理中", "已完成"];
@@ -284,9 +292,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         let images = [];
         let index = 0;
 
-        function showImages(arr) {
-            images = arr;
+        function showImages(imgJson) {
+            images = imgJson; // ★★★ 接收 PHP 傳來的圖 ★★★
             index = 0;
+
+            if (images.length === 0) {
+                alert("無圖片可顯示");
+                return;
+            }
+
             document.getElementById("modalImg").src = images[index];
             document.getElementById("modal").style.display = "flex";
 

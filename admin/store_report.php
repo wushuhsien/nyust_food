@@ -2,9 +2,8 @@
 session_start();
 include "../db.php";  // 引入資料庫連線
 
-// 讀取 store_report.json
-$jsonPath = "../JSON/store_report.json";
-$jsonData = json_decode(file_get_contents($jsonPath), true);
+// 引入資料庫MongoDB
+require_once "../db_mongo.php";
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -167,15 +166,21 @@ $jsonData = json_decode(file_get_contents($jsonPath), true);
                     $images = [];
 
                     // 比對 JSON 找圖片
-                    foreach ($jsonData as $item) {
-                        if (
-                            $item["user_account"] == $row["account_student"] &&
-                            $item["description"] == $row["description"] &&
-                            $item["time"] == $row["time"] &&
-                            $item["store_account"] == $row["account_store"]
-                        ) {
-                            $images = $item["images"];
-                            break;
+                    $filter1 = [
+                        "description"   => $row["description"],
+                        "time"          => $row["time"],
+                        "store_account" => $row["account_store"]
+                    ];
+
+                    $query1 = new MongoDB\Driver\Query($filter1);
+                    $cursor1 = $manager->executeQuery("store_db.store_report", $query1);
+
+                    foreach ($cursor1 as $doc) {
+                        if (isset($doc->images)) {
+                            foreach ($doc->images as $img) {
+                                // MongoDB 裡的圖片是路徑字串
+                                $images[] = $img;
+                            }
                         }
                     }
 

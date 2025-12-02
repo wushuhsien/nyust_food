@@ -20,7 +20,7 @@ if (isset($_POST['add_report'])) {
     date_default_timezone_set('Asia/Taipei');
     $time = date("Y-m-d H:i:s"); // PHP 時間
 
-     // 處理圖片 → base64
+    // 處理圖片 → base64
     $savedFiles = [];
 
     if (!empty($_FILES['images']['name'][0])) {
@@ -283,7 +283,7 @@ if (isset($_POST['add_report'])) {
                     $images = [];
 
                     // 比對 投訴店家JSON 找圖片
-                     $filter1 = [
+                    $filter1 = [
                         "description"   => $row["description"],
                         "time"          => $row["time"],
                         "store_account" => $row["account_store"]
@@ -302,7 +302,7 @@ if (isset($_POST['add_report'])) {
                     }
 
                     // 比對 系統問題JSON 找圖片
-                   $filter2 = [
+                    $filter2 = [
                         "user_account" => $account,
                         "description"  => $row["description"],
                         "time"         => $row["time"]
@@ -364,14 +364,14 @@ if (isset($_POST['add_report'])) {
         let index = 0;
 
         function showImages(imgJson) {
-             images = imgJson; // ★★★ 接收 PHP 傳來的圖 ★★★
+            images = imgJson; // ★★★ 接收 PHP 傳來的圖 ★★★
             index = 0;
 
             if (images.length === 0) {
                 alert("無圖片可顯示");
                 return;
             }
-            
+
             document.getElementById("modalImg").src = images[index];
             document.getElementById("modal").style.display = "flex";
 
