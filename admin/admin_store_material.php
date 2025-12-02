@@ -457,6 +457,23 @@ if (isset($_POST['add_store'])) {
             /* 背景不捲動，只讓 checkmodal-content 捲 */
         }
 
+        #checkModal table {
+            table-layout: auto;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #checkModal th,
+        #checkModal td {
+            padding: 6px 8px;
+            word-wrap: break-word;
+            white-space: normal;
+            text-align: center;
+            /* 水平置中 */
+            vertical-align: middle;
+            /* 垂直置中 */
+        }
+
         .checkmodal-content {
             background-color: #fefaf4;
             /* 溫暖乳白棕（比純白有質感、好閱讀） */
@@ -464,12 +481,11 @@ if (isset($_POST['add_store'])) {
             /* 再稍微下移一點，更自然置中 */
             padding: 24px 30px;
             width: 90%;
-            max-width: 1000px;
+            max-height: 90vh;
+            overflow-y: auto;
             border-radius: 14px;
             box-shadow: 0 6px 18px rgba(92, 61, 46, 0.22);
             /* 微棕陰影，更符合主題 */
-            max-height: 76vh;
-            overflow-y: auto;
             color: var(--text-dark);
         }
 

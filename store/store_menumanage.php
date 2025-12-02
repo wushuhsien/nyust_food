@@ -214,7 +214,6 @@ $stmt->close();
         .menu-tags span {
             font-size: 12px;
             color: #c0392b;
-            background: #fceceb;
             padding: 2px 6px;
             border-radius: 4px;
             margin-right: 5px;
