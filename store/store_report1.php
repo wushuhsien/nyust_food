@@ -9,13 +9,8 @@ if (!$account) {
     exit;
 }
 
-// 讀取 投訴店家 store_report.json
-$jsonPath = "../JSON/store_report.json";
-$jsonData = json_decode(file_get_contents($jsonPath), true);
-
-// 讀取 系統問題 admin_report.json
-$jsonPath1 = "../JSON/admin_report.json";
-$jsonData1 = json_decode(file_get_contents($jsonPath1), true);
+// 引入資料庫MongoDB
+require_once "../db_mongo.php";
 
 //上傳圖片+新增系統問題
 if (isset($_POST['add_report'])) {
@@ -25,27 +20,19 @@ if (isset($_POST['add_report'])) {
     date_default_timezone_set('Asia/Taipei');
     $time = date("Y-m-d H:i:s"); // PHP 時間
 
-    $date = date('Ymd'); // 當天日期格式
-
-    // 1. 上傳圖片
-    $uploadDir = "../picture/report/admin/"; // 存檔資料夾
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-
+    // 處理圖片 → base64
     $savedFiles = [];
+
     if (!empty($_FILES['images']['name'][0])) {
         $fileCount = 1; // 從 1 開始編號
         foreach ($_FILES['images']['tmp_name'] as $index => $tmpName) {
             if (!empty($tmpName)) { // 確保檔案存在
-                $ext = pathinfo($_FILES['images']['name'][$index], PATHINFO_EXTENSION);
-                $newName = sprintf("%s_%s_%02d.%s", $date, $account, $fileCount, $ext);
-                $destination = $uploadDir . $newName;
+                $fileData = file_get_contents($tmpName);
+                $base64 = base64_encode($fileData);
 
-                if (move_uploaded_file($tmpName, $destination)) {
-                    $savedFiles[] = "../picture/report/admin/" . $newName;
-                    $fileCount++; // 成功上傳後才增加編號
-                } else {
-                    error_log("上傳檔案失敗: " . $_FILES['images']['name'][$index]);
-                }
+                $ext = pathinfo($_FILES['images']['name'][$index], PATHINFO_EXTENSION);
+
+                $savedFiles[] = "data:image/$ext;base64," . $base64;
             }
         }
     }
@@ -63,23 +50,19 @@ if (isset($_POST['add_report'])) {
         exit;
     }
 
-    // 3. 新增資料到 JSON
-    $jsonPath = "../JSON/admin_report.json";
-    $jsonData = file_exists($jsonPath) ? json_decode(file_get_contents($jsonPath), true) : [];
+    // 3. MongoDB新增（取代JSON）
+    $bulk = new MongoDB\Driver\BulkWrite;
 
-    $nextId = !empty($jsonData) ? max(array_column($jsonData, 'report_id')) + 1 : 1;
-
-    $jsonData[] = [
-        'report_id' => $nextId,
+    $bulk->insert([
         'user_account' => $account,
-        'description' => $description,
-        'images' => $savedFiles,   // 確認 $savedFiles 有值
-        'time' => $time,
-        'status' => '未處理'
-    ];
+        'description'  => $description,
+        'images'       => $savedFiles,
+        'time'         => $time,
+        'status'       => '未處理'
+    ]);
 
-    file_put_contents($jsonPath, json_encode($jsonData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
+    // 寫入 store_db.admin_report
+    $manager->executeBulkWrite('store_db.admin_report', $bulk);
 
     echo "<script>alert('新增系統問題成功！');window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
     exit;
@@ -280,7 +263,7 @@ if (isset($_POST['add_report'])) {
             </tr>
 
             <?php
-            $sql = "SELECT `description`, `time`, `account_store`, `type`, `status`
+            $sql = "SELECT `description`, `time`, `account_student`, `account_store`, `type`, `status`
                 FROM `report`
                 WHERE `account_student`='$account'
                 ORDER BY `time` ASC";
@@ -298,34 +281,46 @@ if (isset($_POST['add_report'])) {
                     $images = [];
 
                     // 比對 投訴店家JSON 找圖片
-                    foreach ($jsonData as $item) {
-                        if (
-                            $item["description"] == $row["description"] &&
-                            $item["time"] == $row["time"] &&
-                            $item["store_account"] == $row["account_store"]
-                        ) {
-                            $images = $item["images"];
-                            break;
+                    $filter1 = [
+                        "description"   => $row["description"],
+                        "time"          => $row["time"],
+                        "store_account" => $row["account_store"]
+                    ];
+
+                    $query1 = new MongoDB\Driver\Query($filter1);
+                    $cursor1 = $manager->executeQuery("store_db.store_report", $query1);
+
+                    foreach ($cursor1 as $doc) {
+                        if (isset($doc->images)) {
+                            foreach ($doc->images as $img) {
+                                // MongoDB 裡的圖片是路徑字串
+                                $images[] = $img;
+                            }
                         }
                     }
 
                     // 比對 系統問題JSON 找圖片
-                    foreach ($jsonData1 as $item) {
-                        if (
-                            $item["user_account"] == $account &&
-                            $item["description"] == $row["description"] &&
-                            $item["time"] == $row["time"]
-                        ) {
-                            $images = $item["images"];
-                            break;
+                    $filter2 = [
+                        "user_account" => $account,
+                        "description"  => $row["description"],
+                        "time"         => $row["time"]
+                    ];
+
+                    $query2 = new MongoDB\Driver\Query($filter2);
+                    $cursor2 = $manager->executeQuery("store_db.admin_report", $query2);
+
+                    foreach ($cursor2 as $doc) {
+                        if (isset($doc->images)) {
+                            foreach ($doc->images as $img) {
+                                $images[] = $img;
+                            }
                         }
                     }
 
+                    $btn = "";
                     if (!empty($images)) {
                         $imgJson = htmlspecialchars(json_encode($images), ENT_QUOTES);
                         $btn = "<button class='search' onclick='showImages($imgJson)'>查看</button>";
-                    } else {
-                        $btn = "";
                     }
 
                     // 狀態顯示樣式
@@ -364,9 +359,16 @@ if (isset($_POST['add_report'])) {
         let images = [];
         let index = 0;
 
-        function showImages(arr) {
-            images = arr;
+        // 顯示圖片（前端不需改）
+        function showImages(imgJson) {
+            images = imgJson; // ★★★ 接收 PHP 傳來的圖 ★★★
             index = 0;
+
+            if (images.length === 0) {
+                alert("無圖片可顯示");
+                return;
+            }
+
             document.getElementById("modalImg").src = images[index];
             document.getElementById("modal").style.display = "flex";
 
