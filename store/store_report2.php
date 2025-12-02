@@ -9,9 +9,8 @@ if (!$account) {
     exit;
 }
 
-// 讀取 store_report.json
-$jsonPath = "../JSON/store_report.json";
-$jsonData = json_decode(file_get_contents($jsonPath), true);
+// 引入資料庫MongoDB
+require_once "../db_mongo.php";
 
 // 處理修改或刪除
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
