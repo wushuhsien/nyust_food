@@ -33,19 +33,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt = $link->prepare("UPDATE `report` SET `status`=? WHERE `report_id`=?");
             $stmt->bind_param("si", $status, $report_id);
             if ($stmt->execute()) {
-                //同步JSON
-                foreach ($jsonData as &$item) {
-                    if (
-                        $item["user_account"] == $target["account_student"] &&
-                        $item["description"] == $target["description"] &&
-                        $item["time"] == $target["time"]
-                    ) {
-                        $item["status"] = $status;
-                        break;
-                    }
-                }
-                file_put_contents($jsonPath, json_encode($jsonData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                // 更新 MongoDB (同步 status)
+                $filter = [
+                    "user_account" => $target["account_student"],
+                    "description"  => $target["description"],
+                    "time"         => $target["time"]
+                ];
 
+                $bulk = new MongoDB\Driver\BulkWrite();
+                $bulk->update(
+                    $filter,
+                    ['$set' => ["status" => $status]],
+                    ['multi' => true]
+                );
+
+                $manager->executeBulkWrite("store_db.store_report", $bulk);
                 echo "<script>alert('修改成功！'); window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
             } else {
                 echo "<script>alert('修改失敗！');</script>";
@@ -212,14 +214,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $images = [];
 
                     // 比對 JSON 找圖片
-                    foreach ($jsonData as $item) {
-                        if (
-                            $item["user_account"] == $row["account_student"] &&
-                            $item["description"] == $row["description"] &&
-                            $item["time"] == $row["time"]
-                        ) {
-                            $images = $item["images"];
-                            break;
+                    $filter1 = [
+                        "description"   => $row["description"],
+                        "time"          => $row["time"],
+                        "store_account" => $account
+                    ];
+
+                    $query1 = new MongoDB\Driver\Query($filter1);
+                    $cursor1 = $manager->executeQuery("store_db.store_report", $query1);
+
+                    foreach ($cursor1 as $doc) {
+                        if (isset($doc->images)) {
+                            foreach ($doc->images as $img) {
+                                // MongoDB 裡的圖片是路徑字串
+                                $images[] = $img;
+                            }
                         }
                     }
 

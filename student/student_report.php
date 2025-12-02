@@ -13,7 +13,7 @@ if (!$account) {
 require_once "../db_mongo.php";
 
 //上傳圖片+新增系統問題
-if (isset($_POST['add_report'])) {
+if (isset($_POST['add_report1'])) {
     $description = trim($_POST['description']);
 
     // 設定時區為台北
@@ -65,6 +65,70 @@ if (isset($_POST['add_report'])) {
     $manager->executeBulkWrite('store_db.admin_report', $bulk);
 
     echo "<script>alert('新增系統問題成功！');window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
+    exit;
+}
+
+//上傳圖片+新增店家問題
+if (isset($_POST['add_report2'])) {
+    $description = trim($_POST['description']);
+
+    $store_account = $_POST['account_store'] ?? '';
+
+    if (empty($store_account)) {
+        echo "<script>alert('請選擇投訴店家'); history.back();</script>";
+        exit;
+    }
+
+    // 設定時區為台北
+    date_default_timezone_set('Asia/Taipei');
+    $time = date("Y-m-d H:i:s"); // PHP 時間
+
+    // 處理圖片 → base64
+    $savedFiles = [];
+
+    if (!empty($_FILES['images']['name'][0])) {
+        $count = 1;
+        foreach ($_FILES['images']['tmp_name'] as $index => $tmpName) {
+            if (!empty($tmpName)) { // 確保檔案存在
+                $fileData = file_get_contents($tmpName);
+                $base64 = base64_encode($fileData);
+
+                $ext = pathinfo($_FILES['images']['name'][$index], PATHINFO_EXTENSION);
+
+                $savedFiles[] = "data:image/$ext;base64," . $base64;
+            }
+        }
+    }
+
+    // 2. 新增資料到資料庫
+    $link->begin_transaction();
+    $stmt = $link->prepare("INSERT INTO `report`(`description`, `time`, `type`, `status`, `account_student`, `account_store`) VALUES (?, CURRENT_TIMESTAMP(), '投訴店家', '未處理', ?, ?)");
+    $stmt->bind_param("sss", $description, $account, $store_account);
+
+    if ($stmt->execute()) {
+        $link->commit();
+    } else {
+        $link->rollback();
+        echo "<script>alert('新增失敗: " . $stmt->error . "'); history.back();</script>";
+        exit;
+    }
+
+    // 3. MongoDB新增（取代JSON）
+    $bulk = new MongoDB\Driver\BulkWrite;
+
+    $bulk->insert([
+        'user_account' => $account,
+        'description'  => $description,
+        'images'       => $savedFiles,
+        'time'         => $time,
+        'store_account' => $store_account,
+        'status'       => '未處理'
+    ]);
+
+    // 寫入 store_db.admin_report
+    $manager->executeBulkWrite('store_db.store_report', $bulk);
+
+    echo "<script>alert('新增店家問題成功！');window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
     exit;
 }
 ?>
@@ -247,9 +311,35 @@ if (isset($_POST['add_report'])) {
         <h2>新增系統問題</h2>
         <form method="POST" class="add-box" enctype="multipart/form-data">
             <input type="text" name="description" placeholder="訴求" required>
-            <input type="file" name="images[]" id="fileInput" accept="image/*" multiple style="display:none">
-            <button type="button" id="fileBtn">選擇圖片</button>
-            <button type="submit" name="add_report">新增</button>
+            <input type="file" name="images[]" id="fileInput1" accept="image/*" multiple style="display:none">
+            <button type="button" id="fileBtn1">選擇圖片</button>
+            <button type="submit" name="add_report1">新增</button>
+        </form>
+
+        <h2>新增店家問題</h2>
+        <form method="POST" class="add-box" enctype="multipart/form-data">選擇的投訴店家
+            <!-- 下拉式選擇店家 -->
+            <select name="account_store" required>
+                <option value="">選擇投訴店家</option>
+                <?php
+                $sql = "SELECT DISTINCT a.`account` AS store_account
+                FROM `menu` a
+                INNER JOIN `orderitem` b ON a.`menu_id` = b.menu_id
+                INNER JOIN `order` c ON b.order_id = c.order_id
+                WHERE c.account = '$account'
+                ORDER BY a.`account` ASC";
+
+                $result = $link->query($sql);
+
+                while ($row = $result->fetch_assoc()) {
+                    echo "<option value='{$row['store_account']}'>{$row['store_account']}</option>";
+                }
+                ?>
+            </select>
+            <input type="text" name="description" placeholder="訴求" required>
+            <input type="file" name="images[]" id="fileInput2" accept="image/*" multiple style="display:none">
+            <button type="button" id="fileBtn2">選擇圖片</button>
+            <button type="submit" name="add_report2">新增</button>
         </form>
 
         <h2>問題歷史紀錄</h2>
@@ -259,6 +349,7 @@ if (isset($_POST['add_report'])) {
                 <th>訴求</th>
                 <th>圖片</th>
                 <th>時間</th>
+                <th>問題類型</th>
                 <th>被投訴店家</th>
                 <th>狀態</th>
             </tr>
@@ -336,6 +427,7 @@ if (isset($_POST['add_report'])) {
                             <td>{$row['description']}</td>
                             <td>$btn</td>
                             <td>{$row['time']}</td>
+                            <td>{$row['type']}</td>
                             <td>{$row['account_store']}</td>
                             <td><span class='status {$statusClass}'>{$row['status']}</span></td>
                         </tr>";
@@ -402,10 +494,15 @@ if (isset($_POST['add_report'])) {
             }
         }
 
-        //新增上傳圖片
-        const fileInput = document.getElementById('fileInput');
-        const fileBtn = document.getElementById('fileBtn');
-        fileBtn.addEventListener('click', () => fileInput.click());
+        //新增系統問題上傳圖片
+        const fileInput1 = document.getElementById('fileInput1');
+        const fileBtn1 = document.getElementById('fileBtn1');
+        fileBtn1.addEventListener('click', () => fileInput1.click());
+
+        //新增店家問題上傳圖片
+        const fileInput2 = document.getElementById('fileInput2');
+        const fileBtn2 = document.getElementById('fileBtn2');
+        fileBtn2.addEventListener('click', () => fileInput2.click());
     </script>
 </body>
 
