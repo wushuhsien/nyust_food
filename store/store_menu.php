@@ -1,5 +1,5 @@
 <?php
-include "../db.php";  // 引入資料庫連線
+// include "../db.php";  // 引入資料庫連線
 $account = isset($_SESSION['user']) ? $_SESSION['user'] : '';
 
 // 設定時區

@@ -105,10 +105,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         .status {
-            padding: 6px 10px;
-            border-radius: 6px;
-            color: white;
-            font-size: 14px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
 
         .s1 {
@@ -176,6 +175,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             margin: 10px;
             font-size: 14px;
         }
+         .edit-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            background-color: #f28c28;
+        }
+
+        .edit-btn:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 
@@ -236,7 +249,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                     // 狀態下拉選單
                     $statusOptions = ["未處理", "處理中", "已完成"];
-                    $statusSelect = "<select name='status'>";
+                    $statusSelect = "<select name='status' class='status'>";
                     foreach ($statusOptions as $status) {
                         $selected = ($row['status'] === $status) ? "selected" : "";
                         $statusSelect .= "<option value='{$status}' $selected>{$status}</option>";
@@ -261,7 +274,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             <td>                    
                                 <input type='hidden' name='report_id' value='{$row['report_id']}'>
                                     <input type='hidden' name='action' value='update'>
-                                    <button type='submit' class='action-btn update-btn'>修改</button>
+                                    <button type='submit' class='edit-btn'>修改</button>
                                 </form>
                             </td>
                         </tr>";
