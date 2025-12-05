@@ -129,10 +129,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     <div id="b">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h1>店家公告</h1>
-            <!-- <button onclick="location.href='store-insert-announcement.php'"
+            <button onclick="location.href='store-insert-announcement.php'"
                 style="padding: 8px 14px; background: #8B5E3C; color: white; border: none; border-radius: 6px; font-size: 14px; cursor: pointer;">
                 新增公告
-            </button> -->
+            </button>
         </div>
 
         <!-- 查詢表單 & 新增公告按鈕 -->

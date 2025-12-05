@@ -149,6 +149,7 @@ if ($account !== '') {
                         <input type="button" value="菜單管理" onclick="window.location='store_menumanage.php'">
                         <input type="button" value="公告管理" onclick="window.location='store-announcement.php'">
                         <input type="button" value="歷史訂單" onclick="window.location='store_history.php'">
+                        <input type="button" value="評價紀錄" onclick="alert('評價紀錄')">
                     </div>
                     <input type="button" value="問題 ▼" onclick="toggleSubMenu3()">
                     <div id="subMenu3" class="sub-dropdown">
