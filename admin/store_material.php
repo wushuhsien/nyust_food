@@ -1024,7 +1024,7 @@ if (isset($_POST['add_store'])) {
                                 <div class="btn-group">
                                     <button type="button" class="btn-order"
                                         onclick="location.href='store_material_history.php?account=<?= $row['account'] ?>'">歷史訂單</button>
-                                    <button class="btn-rate">評價</button>
+                                    <!-- <button class="btn-rate">評價</button> -->
                                     <button class="btn-chart">圖表</button>
                                     <button type="button" class="btn-log"
                                         onclick="window.location.href='<?= $row['logUrl'] ?>'">日誌</button>
