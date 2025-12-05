@@ -61,66 +61,25 @@ if (isset($_POST['add_store'])) {
         $stmt1->execute();
         $stmt1->close();
 
-        // ★ 至少要勾 1 個類型
-        if (!isset($_POST['store_type']) || count($_POST['store_type']) == 0) {
-            echo "<script>alert('請至少選擇一個店家類型！'); history.back();</script>";
-            exit;
-        }
+        $stmt2 = $link->prepare("INSERT INTO `store`(`store_id`, `name`, `description`, `address`, `phone`, `email`, `storetype_id`, `account`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt2->bind_param("isssssis", $nextId, $name, $description, $address, $phone, $email, $storetype_id, $username);
+        $stmt2->execute();
+        $stmt2->close();
 
-        // ★ store_type 已經是 storetype_id，不需要 explode
-        $storetypeIds = $_POST['store_type'];
-
-        // ★ 取得目前 store 最大 ID
-        $result = $link->query("SELECT MAX(store_id) AS maxid FROM store");
-        $row = $result->fetch_assoc();
-        $nextId = ($row['maxid'] === NULL ? 1 : $row['maxid'] + 1);
-
-        // ★ 每個類型插入一筆 store
-        foreach ($storetypeIds as $storetype_id) {
-
-            // 防呆：避免空值或不是數字
-            $storetype_id = intval($storetype_id);
-            if ($storetype_id <= 0) continue;
-
-            // ★ 寫入多筆 store（相同資料，不同類型）
-            $sql2 = "INSERT INTO store(store_id, name, description, address, phone, email, storetype_id, account)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-            $stmt2 = $link->prepare($sql2);
-            $stmt2->bind_param(
-                "isssssis",
-                $nextId,
-                $name,
-                $desc,
-                $address,
-                $phone,
-                $email,
-                $storetype_id,  // 直接使用類型ID
-                $username
-            );
-
-            if (!$stmt2->execute()) {
-                echo "<script>alert('店家資料寫入失敗（類型 ID：" . $storetype_id . "）'); history.back();</script>";
-                exit;
-            }
-
-            // ★ 每插入一次就讓 store_id 自動 +1
-            $nextId++;
-        }
-
-        // 插入 storehours
-        if (!empty($_POST['open_time']) && !empty($_POST['close_time'])) {
+        if (isset($_POST['open_time']) && isset($_POST['close_time'])) {
+            $stmt3 = $link->prepare("INSERT INTO storehours(weekday, open_time, close_time, account) VALUES (?, ?, ?, ?)");
             foreach ($_POST['open_time'] as $weekday => $opens) {
                 $closes = $_POST['close_time'][$weekday];
                 for ($i = 0; $i < count($opens); $i++) {
                     $open = $opens[$i];
                     $close = $closes[$i];
-
-                    $stmtHour = $link->prepare("INSERT INTO storehours(weekday, open_time, close_time, account) VALUES (?, ?, ?, ?)");
-                    $stmtHour->bind_param("isss", $weekday, $open, $close, $username);
-                    $stmtHour->execute();
+                    if ($open && $close) {
+                        $stmt3->bind_param("isss", $weekday, $open, $close, $username);
+                        $stmt3->execute();
+                    }
                 }
             }
+            $stmt3->close();
         }
 
         $link->commit();
@@ -746,13 +705,6 @@ if (isset($_POST['add_store'])) {
             opacity: 0.85;
             transform: scale(1.05);
         }
-
-        .form-row input[type="checkbox"] {
-            width: auto !important;
-            transform: scale(0.8);
-            /* 你要的變小 */
-            margin-right: 6px;
-        }
     </style>
 </head>
 
@@ -787,27 +739,15 @@ if (isset($_POST['add_store'])) {
                         <!-- 店家類型 select -->
                         <?php
                         $result = $link->query("SELECT storetype_id, name FROM storetype");
-                        $storeTypes = [];
                         if ($result->num_rows > 0) {
+                            echo '<select name="storetype" class="select-style" required>';
+                            echo '<option value="">店家類型</option>';
                             while ($row = $result->fetch_assoc()) {
-                                $storeTypes[$row['storetype_id']] = htmlspecialchars($row['name']);
+                                echo '<option value="' . $row['storetype_id'] . '">' . htmlspecialchars($row['name']) . '</option>';
                             }
+                            echo '</select>';
                         }
                         ?>
-
-                        <div style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; background: #f9f9f9;">
-                            <ul style="list-style: none; margin: 0; padding: 0;">
-                                <?php foreach ($storeTypes as $id => $name): ?>
-                                    <li style="margin-bottom: 5px;">
-                                        <label>
-                                            <input type="checkbox" name="store_type[]" value="<?php echo $id; ?>"
-                                                style="margin-right: 6px; transform: scale(0.8);">
-                                            <?php echo $name; ?>
-                                        </label>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
 
                         <input type="text" name="name" placeholder="店名">
                         <input type="text" name="description" placeholder="描述">
