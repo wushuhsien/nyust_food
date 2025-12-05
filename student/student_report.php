@@ -162,15 +162,20 @@ if (isset($_POST['add_report2'])) {
             background: #fafafa;
             border-radius: 12px;
             margin-bottom: 18px;
-
+            align-items: center;
         }
 
+        select,
         .add-box input {
             width: 200px;
             padding: 10px 12px;
             border: 1px solid #ddd;
             border-radius: 10px;
             font-size: 14px;
+        }
+
+        select {
+            min-width: 220px;
         }
 
         .add-box button {
