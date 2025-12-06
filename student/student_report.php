@@ -105,7 +105,7 @@ if (isset($_POST['add_report2'])) {
     // 3. MongoDB新增（取代JSON）
     $bulk = new MongoDB\Driver\BulkWrite;
 
-     $mongo_id = $bulk->insert([
+    $mongo_id = $bulk->insert([
         'user_account' => $account,
         'description'  => $description,
         'images'       => $savedFiles,
@@ -117,13 +117,13 @@ if (isset($_POST['add_report2'])) {
     // 寫入 store_db.admin_report
     $manager->executeBulkWrite('store_db.store_report', $bulk);
 
-     // ✔ 取得 MongoDB ObjectId
+    // ✔ 取得 MongoDB ObjectId
     $imgId = (string)$mongo_id;  // 轉字串 
 
     // 2. 新增資料到資料庫
     $link->begin_transaction();
     $stmt = $link->prepare("INSERT INTO `report`(`description`, `time`, `type`, `status`, `account_student`, `account_store`,`img_id`) VALUES (?, CURRENT_TIMESTAMP(), '投訴店家', '未處理', ?, ?, ?)");
-    $stmt->bind_param("ssss", $description, $account, $store_account,$imgId);
+    $stmt->bind_param("ssss", $description, $account, $store_account, $imgId);
 
     if ($stmt->execute()) {
         $link->commit();
