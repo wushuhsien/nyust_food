@@ -939,7 +939,7 @@ if (isset($_POST['add_store'])) {
                                             </button>
 
                                         </form>
-                                        <button class="btn-chart">菜單</button>
+                                        <button class="btn-chart" onclick="location.href='store_seemenu.php?account=<?= $row['account'] ?>'">菜單</button>
                                     </div>
                                 </div>
 
