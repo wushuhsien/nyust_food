@@ -175,7 +175,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             margin: 10px;
             font-size: 14px;
         }
-         .edit-btn {
+
+        .search {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            background-color: #f28c28;
+        }
+
+        .search:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
+        }
+
+        .edit-btn {
             padding: 4px 8px;
             border: none;
             border-radius: 5px;
@@ -245,7 +261,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         }
                     }
 
-                    $imgBtn = !empty($images) ? "<button onclick='showImages(" . htmlspecialchars(json_encode($images), ENT_QUOTES) . ")'>查看</button>" : "";
+                    $imgBtn = !empty($images) ? "<button class='search' onclick='showImages(" . htmlspecialchars(json_encode($images), ENT_QUOTES) . ")'>查看</button>" : "";
 
                     // 狀態下拉選單
                     $statusOptions = ["未處理", "處理中", "已完成"];

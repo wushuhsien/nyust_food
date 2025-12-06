@@ -37,23 +37,11 @@ if (isset($_POST['add_report1'])) {
         }
     }
 
-    // 2. 新增資料到資料庫
-    $link->begin_transaction();
-    $stmt = $link->prepare("INSERT INTO `report`(`description`, `time`, `type`, `status`, `account_student`, `account_store`) VALUES (?, CURRENT_TIMESTAMP(), '系統問題', '未處理', ?, NULL)");
-    $stmt->bind_param("ss", $description, $account);
-
-    if ($stmt->execute()) {
-        $link->commit();
-    } else {
-        $link->rollback();
-        echo "<script>alert('新增失敗: " . $stmt->error . "'); history.back();</script>";
-        exit;
-    }
-
     // 3. MongoDB新增（取代JSON）
     $bulk = new MongoDB\Driver\BulkWrite;
 
-    $bulk->insert([
+    // ★★ 必須接回傳值 ObjectId
+    $mongo_id = $bulk->insert([
         'user_account' => $account,
         'description'  => $description,
         'images'       => $savedFiles,
@@ -64,7 +52,21 @@ if (isset($_POST['add_report1'])) {
     // 寫入 store_db.admin_report
     $manager->executeBulkWrite('store_db.admin_report', $bulk);
 
-    echo "<script>alert('新增系統問題成功！');window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
+    // ✔ 取得 MongoDB ObjectId
+    $imgId = (string)$mongo_id;  // 轉字串 
+
+    // 2. 新增資料到資料庫
+    $link->begin_transaction();
+    $stmt = $link->prepare("INSERT INTO `report`(`description`, `time`, `type`, `status`, `account_student`, `account_store`,`img_id`) VALUES (?, CURRENT_TIMESTAMP(), '系統問題', '未處理', ?, NULL, ?)");
+    $stmt->bind_param("sss", $description, $account, $imgId);
+
+    if ($stmt->execute()) {
+        $link->commit();
+        echo "<script>alert('新增系統問題成功！');window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
+    } else {
+        $link->rollback();
+        echo "<script>alert('新增失敗: " . $stmt->error . "'); history.back();</script>";
+    }
     exit;
 }
 
@@ -100,23 +102,10 @@ if (isset($_POST['add_report2'])) {
         }
     }
 
-    // 2. 新增資料到資料庫
-    $link->begin_transaction();
-    $stmt = $link->prepare("INSERT INTO `report`(`description`, `time`, `type`, `status`, `account_student`, `account_store`) VALUES (?, CURRENT_TIMESTAMP(), '投訴店家', '未處理', ?, ?)");
-    $stmt->bind_param("sss", $description, $account, $store_account);
-
-    if ($stmt->execute()) {
-        $link->commit();
-    } else {
-        $link->rollback();
-        echo "<script>alert('新增失敗: " . $stmt->error . "'); history.back();</script>";
-        exit;
-    }
-
     // 3. MongoDB新增（取代JSON）
     $bulk = new MongoDB\Driver\BulkWrite;
 
-    $bulk->insert([
+     $mongo_id = $bulk->insert([
         'user_account' => $account,
         'description'  => $description,
         'images'       => $savedFiles,
@@ -127,6 +116,22 @@ if (isset($_POST['add_report2'])) {
 
     // 寫入 store_db.admin_report
     $manager->executeBulkWrite('store_db.store_report', $bulk);
+
+     // ✔ 取得 MongoDB ObjectId
+    $imgId = (string)$mongo_id;  // 轉字串 
+
+    // 2. 新增資料到資料庫
+    $link->begin_transaction();
+    $stmt = $link->prepare("INSERT INTO `report`(`description`, `time`, `type`, `status`, `account_student`, `account_store`,`img_id`) VALUES (?, CURRENT_TIMESTAMP(), '投訴店家', '未處理', ?, ?, ?)");
+    $stmt->bind_param("ssss", $description, $account, $store_account,$imgId);
+
+    if ($stmt->execute()) {
+        $link->commit();
+    } else {
+        $link->rollback();
+        echo "<script>alert('新增失敗: " . $stmt->error . "'); history.back();</script>";
+        exit;
+    }
 
     echo "<script>alert('新增店家問題成功！');window.location.href='" . $_SERVER['PHP_SELF'] . "';</script>";
     exit;
