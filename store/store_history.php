@@ -12,28 +12,29 @@ if (!$store_account) {
 date_default_timezone_set("Asia/Taipei");
 
 // ==========================================
-// ★ 新增：處理店家回覆 (寫入 mealreviewreply 表)
+// ★ 處理店家回覆 (已修正為使用 mealreview_id)
 // ==========================================
 if (isset($_POST['submit_reply'])) {
-    $p_order_id = $_POST['order_id'];
+    // 1. 接收 mealreview_id
+    $p_mealreview_id = $_POST['mealreview_id']; 
     $p_reply = trim($_POST['reply_content']);
     $p_time = date("Y-m-d H:i:s");
 
-    if (!empty($p_reply)) {
-        // 1. 檢查是否已經回覆過 (防止重複插入)
-        $check_sql = "SELECT mealreviewreply_id FROM mealreviewreply WHERE order_id = ?";
+    if (!empty($p_reply) && !empty($p_mealreview_id)) {
+        // 2. 檢查是否已經回覆過
+        $check_sql = "SELECT mealreviewreply_id FROM mealreviewreply WHERE mealreview_id = ?";
         $check_stmt = $link->prepare($check_sql);
-        $check_stmt->bind_param("i", $p_order_id);
+        $check_stmt->bind_param("i", $p_mealreview_id);
         $check_stmt->execute();
         $check_stmt->store_result();
 
         if ($check_stmt->num_rows > 0) {
             echo "<script>alert('您已經回覆過此評論了！'); history.back();</script>";
         } else {
-            // 2. 插入新回覆到 mealreviewreply
-            $ins_sql = "INSERT INTO mealreviewreply (description, time, account, order_id) VALUES (?, ?, ?, ?)";
+            // 3. 插入新回覆
+            $ins_sql = "INSERT INTO mealreviewreply (description, time, account, mealreview_id) VALUES (?, ?, ?, ?)";
             $ins_stmt = $link->prepare($ins_sql);
-            $ins_stmt->bind_param("sssi", $p_reply, $p_time, $store_account, $p_order_id);
+            $ins_stmt->bind_param("sssi", $p_reply, $p_time, $store_account, $p_mealreview_id);
             
             if ($ins_stmt->execute()) {
                 echo "<script>alert('回覆已送出！'); window.location.href='store_history.php';</script>";
@@ -48,15 +49,13 @@ if (isset($_POST['submit_reply'])) {
 // ==========================================
 
 // 1. 處理篩選參數
-// ★ 修改：預設為空字串，不再預設今天
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : '';
 $search_query = isset($_GET['q']) ? trim($_GET['q']) : '';
-// 評價篩選參數
 $rating_filter = isset($_GET['rating']) ? $_GET['rating'] : ''; 
 
 // 2. 準備 SQL 查詢
-// ★ 修改：先不加入日期條件
+// ★★★ 重點修正區塊 ★★★
 $sql = "
     SELECT 
         o.order_id, 
@@ -71,6 +70,8 @@ $sql = "
         oi.quantity,
         oi.note AS item_note,
         
+        /* ★ 新增：必須選取 mealreview_id */
+        mr.mealreview_id,
         mr.rate AS review_rate,
         mr.description AS review_desc,
         mr.time AS review_time,
@@ -83,7 +84,8 @@ $sql = "
     JOIN `menu` m ON oi.menu_id = m.menu_id
     JOIN `student` st ON o.account = st.account
     LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id           
-    LEFT JOIN `mealreviewreply` mrr ON o.order_id = mrr.order_id    
+    /* ★ 修正：回覆是關聯到評論(mr)，而不是訂單(o) */
+    LEFT JOIN `mealreviewreply` mrr ON mr.mealreview_id = mrr.mealreview_id    
     
     WHERE m.account = ? 
     AND o.status IN ('已取餐', '已取消', '商家拒單')
@@ -92,7 +94,6 @@ $sql = "
 $params = [$store_account];
 $types = "s";
 
-// ★ 修改：只有當使用者有選日期時，才加入 SQL 條件
 if (!empty($start_date)) {
     $sql .= " AND DATE(o.estimate_time) >= ?";
     $params[] = $start_date;
@@ -105,7 +106,6 @@ if (!empty($end_date)) {
     $types .= "s";
 }
 
-// 搜尋關鍵字
 if (!empty($search_query)) {
     $sql .= " AND (o.order_id LIKE ? OR o.account LIKE ? OR st.phone LIKE ?)";
     $searchTerm = "%" . $search_query . "%";
@@ -115,7 +115,6 @@ if (!empty($search_query)) {
     $types .= "sss";
 }
 
-// 評價篩選邏輯
 if ($rating_filter !== '') {
     if ($rating_filter === 'unrated') {
         $sql .= " AND mr.rate IS NULL";
@@ -152,12 +151,12 @@ while ($row = $result->fetch_assoc()) {
             'items' => [],
             'total_price' => 0,
             
-            // ★ 評論資料
+            // ★ 將 mealreview_id 存入陣列
+            'mealreview_id' => $row['mealreview_id'],
             'rate' => $row['review_rate'],
             'review_desc' => $row['review_desc'],
             'review_time' => $row['review_time'],
             
-            // ★ 回覆資料
             'reply_desc' => $row['reply_desc'],
             'reply_time' => $row['reply_time']
         ];
@@ -406,7 +405,8 @@ foreach ($history_orders as $order) {
                                             </div>
                                         <?php else: ?>
                                             <form method="POST" onsubmit="return confirm('送出後無法修改或刪除，確定要回覆嗎？');">
-                                                <input type="hidden" name="order_id" value="<?= $oid ?>">
+                                                <input type="hidden" name="mealreview_id" value="<?= $order['mealreview_id'] ?>">
+                                                
                                                 <textarea name="reply_content" class="reply-input" rows="2" placeholder="輸入回覆內容..." required></textarea>
                                                 <div style="text-align: right;">
                                                     <button type="submit" name="submit_reply" class="btn-reply">

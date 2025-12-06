@@ -297,12 +297,12 @@ $end_date = $_GET['end_date'] ?? '';
                             s_acc.name AS student_name,
                             o.estimate_time, 
                             o.pick_time, 
-                            /* 移除 o.payment */
                             o.status,
                             o.note, 
                             SUM(oi.quantity * m.price) as total_price,
                             
                             /* ★ 新增：選取評論與回覆 */
+                            mr.mealreview_id,
                             mr.rate AS review_rate,
                             mr.description AS review_desc,
                             mr.time AS review_time,        /* 學生評論時間 */
