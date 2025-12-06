@@ -109,6 +109,21 @@ require_once "../db_mongo.php";
             /* 圖片下方增加空間 */
         }
 
+        .search {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            color: white;
+            cursor: pointer;
+            background-color: #C19A6B;
+        }
+
+        .search:hover {
+            opacity: 0.85;
+            transform: scale(1.05);
+        }
+
         .close-btn {
             position: absolute;
             top: 8px;
@@ -186,7 +201,7 @@ require_once "../db_mongo.php";
 
                     if (!empty($images)) {
                         $imgJson = htmlspecialchars(json_encode($images), ENT_QUOTES);
-                        $btn = "<button onclick='showImages($imgJson)'>查看</button>";
+                        $btn = "<button class='search' onclick='showImages($imgJson)'>查看</button>";
                     } else {
                         $btn = "";
                     }
