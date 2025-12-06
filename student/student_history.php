@@ -114,7 +114,7 @@ $history_orders = [];
 if (!empty($target_order_ids)) {
     $placeholders = implode(',', array_fill(0, count($target_order_ids), '?'));
     
-    // ★ 修改：加入 LEFT JOIN mealreviewreply
+    // ★ 修改：LEFT JOIN mealreviewreply 使用 mealreview_id 關聯
     $sql = "
         SELECT 
             o.order_id, 
@@ -139,7 +139,8 @@ if (!empty($target_order_ids)) {
         JOIN `menu` m ON oi.menu_id = m.menu_id
         JOIN `store` s ON m.account = s.account
         LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id
-        LEFT JOIN `mealreviewreply` mrr ON o.order_id = mrr.order_id /* ★ 加入回覆表關聯 */
+        /* ★ 修正這裡：回覆是針對評論 (mr)，不是針對訂單 (o) */
+        LEFT JOIN `mealreviewreply` mrr ON mr.mealreview_id = mrr.mealreview_id 
         WHERE o.order_id IN ($placeholders)
         ORDER BY o.order_id DESC
     ";
