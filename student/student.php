@@ -177,18 +177,19 @@ if (!$account) {
             <h2 class="dashboard-title"><i class="bi bi-receipt"></i> 進行中的訂單</h2>
 
             <?php
-            // ★ 修改 1: 在 SQL 中加入 o.note AS order_note
-            // ★ 修改 1: 在 SQL 中加入 o.note AS order_note，並排除 '已取餐'
+            // 1. 先撈出該學生最近 48 小時內的所有未完成/進行中訂單
+            // (時間範圍放寬到 48 小時，以免漏掉跨日訂單，精確過濾由 PHP 處理)
             $sql_orders = "
                 SELECT 
                     o.order_id, 
                     o.status, 
                     o.estimate_time, 
                     o.note AS order_note, 
-                    s.name AS store_name,
-                    m.name AS menu_name,
+                    s.name AS store_name, 
+                    s.account AS store_account, /* 多撈 store_account 用來查營業時間 */
+                    m.name AS menu_name, 
                     m.price,
-                    oi.quantity,
+                    oi.quantity, 
                     oi.note AS item_note
                 FROM `order` o
                 JOIN `orderitem` oi ON o.order_id = oi.order_id
@@ -196,6 +197,7 @@ if (!$account) {
                 JOIN `store` s ON m.account = s.account
                 WHERE o.account = ? 
                 AND o.status NOT IN ('已完成', '已取消', '商家拒單', '已取餐')
+                AND o.estimate_time >= DATE_SUB(NOW(), INTERVAL 48 HOUR)
                 ORDER BY o.order_id DESC
             ";
 
@@ -205,34 +207,80 @@ if (!$account) {
             $result = $stmt->get_result();
 
             $active_orders = [];
+            
+            // 用來快取店家營業時間，避免同一家店重複查詢資料庫多次
+            $store_hours_cache = []; 
+            date_default_timezone_set("Asia/Taipei");
 
             while ($row = $result->fetch_assoc()) {
-                $oid = $row['order_id'];
+                $store_acc = $row['store_account'];
+                $estimate_time = $row['estimate_time'];
 
+                // --- 智慧過濾邏輯 START ---
+                // 1. 如果快取沒資料，去撈該店家的營業時間
+                if (!isset($store_hours_cache[$store_acc])) {
+                    $w = date('N'); // 今天星期幾
+                    $q_hours = "SELECT open_time, close_time FROM storehours WHERE account = '$store_acc' AND weekday = $w";
+                    $res_h = $link->query($q_hours);
+                    $store_hours_cache[$store_acc] = $res_h->fetch_assoc();
+                }
+
+                $hours = $store_hours_cache[$store_acc];
+                $show_order = true; // 預設顯示
+
+                if ($hours) {
+                    $open = $hours['open_time'];
+                    $close = $hours['close_time'];
+                    $shift_start = '';
+                    $current_time_str = date('H:i:s');
+
+                    // 計算該店當前營業班次的「起始時間」
+                    if ($close < $open) { // 跨日 (例如 18:00 - 02:00)
+                        if ($current_time_str < $close) {
+                            // 現在是凌晨 (例如 01:00)，班次起始時間是昨天 18:00
+                            $shift_start = date('Y-m-d H:i:s', strtotime("yesterday $open"));
+                        } else {
+                            // 現在是晚上 (例如 23:00)，班次起始時間是今天 18:00
+                            $shift_start = date('Y-m-d H:i:s', strtotime("today $open"));
+                        }
+                    } else { // 一般 (例如 10:00 - 22:00)
+                        $shift_start = date('Y-m-d H:i:s', strtotime("today $open -1 hour"));
+                    }
+
+                    // 比較：如果這筆訂單的預計時間，早於目前的班次起始時間，代表這是「上一班」的舊單，不顯示
+                    if ($estimate_time < $shift_start) {
+                        $show_order = false;
+                    }
+                }
+                
+                // 如果判斷不需要顯示，就跳過這筆資料
+                if (!$show_order) continue; 
+                // --- 智慧過濾邏輯 END ---
+
+                // 組裝資料 (與原本邏輯相同)
+                $oid = $row['order_id'];
                 if (!isset($active_orders[$oid])) {
                     $active_orders[$oid] = [
                         'store_name' => $row['store_name'],
                         'status' => $row['status'],
                         'estimate_time' => $row['estimate_time'],
-                        'order_note' => $row['order_note'], // ★ 修改 2: 存入陣列
+                        'order_note' => $row['order_note'],
                         'items' => [],
                         'total_price' => 0
                     ];
                 }
-
                 $active_orders[$oid]['items'][] = [
                     'name' => $row['menu_name'],
                     'qty' => $row['quantity'],
                     'note' => $row['item_note']
                 ];
-
                 $active_orders[$oid]['total_price'] += ($row['price'] * $row['quantity']);
             }
             $stmt->close();
 
+            // --- 顯示 HTML (與原本邏輯相同) ---
             if (!empty($active_orders)) {
                 foreach ($active_orders as $order_id => $order) {
-                    // 修改格式為 'Y/m/d H:i' 以顯示日期
                     $time_display = date('Y/m/d H:i', strtotime($order['estimate_time']));
                     ?>
                     <div class="order-card">
@@ -256,8 +304,7 @@ if (!$account) {
                                             <?= htmlspecialchars($item['name']) ?>
                                             <span style="color:#888;">x<?= $item['qty'] ?></span>
                                             <?php if ($item['note']): ?>
-                                                <span
-                                                    style="font-size:12px; color:#e74c3c;">(<?= htmlspecialchars($item['note']) ?>)</span>
+                                                <span style="font-size:12px; color:#e74c3c;">(<?= htmlspecialchars($item['note']) ?>)</span>
                                             <?php endif; ?>
                                         </span>
                                     </div>

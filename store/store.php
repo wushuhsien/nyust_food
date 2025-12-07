@@ -9,6 +9,16 @@ if (!$store_account) {
 }
 
 // ==========================================
+// 0. 初始化訂單陣列 (修復 Undefined variable 錯誤)
+// ==========================================
+$orders = [
+    '等待店家接單' => [],
+    '餐點製作中' => [],
+    '等待取餐' => [],
+    '已取餐' => []
+];
+
+// ==========================================
 // 1. 處理訂單狀態更新 (POST 請求)
 // ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_POST['order_id'])) {
@@ -16,48 +26,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     $action = $_POST['action'];
     $new_status = '';
 
-    // 設定時區
     date_default_timezone_set("Asia/Taipei");
 
-    // 定義狀態流轉邏輯
     switch ($action) {
-        case 'accept':
-            $new_status = '餐點製作中';
-            break;
-        case 'finish_cook':
-            $new_status = '等待取餐';
-            break;
-        case 'complete':
-            $new_status = '已取餐';
-            break;
+        case 'accept':      $new_status = '餐點製作中'; break;
+        case 'finish_cook': $new_status = '等待取餐'; break;
+        case 'complete':    $new_status = '已取餐'; break;
     }
 
     if ($new_status) {
         if ($new_status === '已取餐') {
-            // 如果是「已取餐」，同時更新 status 和 pick_time
             $current_time = date('Y-m-d H:i:s');
             $sql_update = "UPDATE `order` SET status = ?, pick_time = ? WHERE order_id = ?";
             $stmt = $link->prepare($sql_update);
             $stmt->bind_param("ssi", $new_status, $current_time, $order_id);
         } else {
-            // 其他狀態只更新 status
             $sql_update = "UPDATE `order` SET status = ? WHERE order_id = ?";
             $stmt = $link->prepare($sql_update);
             $stmt->bind_param("si", $new_status, $order_id);
         }
-
         $stmt->execute();
         $stmt->close();
-
+        
+        // 重新導向避免表單重複提交
         header("Location: store.php");
         exit;
     }
 }
 
 // ==========================================
-// 2. 撈取訂單資料並分類
+// 2. 判斷營業時段並計算「顯示起始時間」
 // ==========================================
-// ★ 修改 1：多撈取 student.phone 並加入 JOIN
+date_default_timezone_set("Asia/Taipei");
+$current_weekday = date('N'); // 1(週一) ~ 7(週日)
+$current_time_str = date('H:i:s');
+
+// 撈取店家今日營業時間
+$sql_hours = "SELECT open_time, close_time FROM storehours WHERE account = ? AND weekday = ?";
+$stmt_h = $link->prepare($sql_hours);
+$stmt_h->bind_param("si", $store_account, $current_weekday);
+$stmt_h->execute();
+$res_h = $stmt_h->get_result();
+$hours = $res_h->fetch_assoc();
+$stmt_h->close();
+
+// 預設顯示過去 24 小時 (若沒設定營業時間)
+$filter_start_time = date('Y-m-d H:i:s', strtotime("-24 hours"));
+
+if ($hours) {
+    $open = $hours['open_time'];
+    $close = $hours['close_time'];
+
+    // 判斷是否跨日營業 (例如: Open 18:00, Close 02:00)
+    if ($close < $open) {
+        // 如果現在時間還沒過午夜 (例如 01:00)，代表這是「昨天」開始的班次
+        // 我們要看的是 昨天 18:00 之後的訂單
+        if ($current_time_str < $close) {
+            $filter_start_time = date('Y-m-d H:i:s', strtotime("yesterday $open"));
+        } else {
+            // 如果現在是 23:00，代表是 今天 18:00 開始的班次
+            $filter_start_time = date('Y-m-d H:i:s', strtotime("today $open"));
+        }
+    } else {
+        // 一般營業 (例如: 10:00 - 22:00)
+        // 為了避免顧客提早一點點下單導致看不到，我們抓開店前 1 小時
+        $filter_start_time = date('Y-m-d H:i:s', strtotime("today $open -1 hour"));
+    }
+}
+
+// ==========================================
+// 3. 撈取訂單資料 (加入時間過濾)
+// ==========================================
+// ★ 修改 1：多撈取 st.name AS student_name
 $sql_orders = "
     SELECT 
         o.order_id, 
@@ -66,34 +106,29 @@ $sql_orders = "
         o.pick_time, 
         o.note AS order_note,
         o.account AS student_account,
-        st.phone AS student_phone, /* 多撈取電話 */
+        st.phone AS student_phone,
+        st.name AS student_name,  /* 新增這一行：撈取學生本名 */
         SUM(m.price * oi.quantity) AS total_price
     FROM `order` o
     JOIN `orderitem` oi ON o.order_id = oi.order_id
     JOIN `menu` m ON oi.menu_id = m.menu_id
-    JOIN `student` st ON o.account = st.account /* 關聯學生表 */
+    JOIN `student` st ON o.account = st.account
     WHERE m.account = ? 
+    AND o.estimate_time >= ?  /* ★ 關鍵：只顯示本班次開始之後的訂單 */
     GROUP BY o.order_id
     ORDER BY o.order_id DESC
 ";
 
 $stmt = $link->prepare($sql_orders);
-$stmt->bind_param("s", $store_account);
+$stmt->bind_param("ss", $store_account, $filter_start_time);
 $stmt->execute();
 $result = $stmt->get_result();
-
-// 初始化分類陣列
-$orders = [
-    '等待店家接單' => [],
-    '餐點製作中' => [],
-    '等待取餐' => [],
-    '已取餐' => []
-];
 
 while ($row = $result->fetch_assoc()) {
     $oid = $row['order_id'];
     $status = $row['status'];
 
+    // 撈取細項
     $sql_items = "SELECT m.name, oi.quantity, oi.note 
                   FROM orderitem oi 
                   JOIN menu m ON oi.menu_id = m.menu_id 
@@ -105,6 +140,7 @@ while ($row = $result->fetch_assoc()) {
     }
     $row['items'] = $items_detail;
 
+    // 分類放入陣列
     if (isset($orders[$status])) {
         $orders[$status][] = $row;
     }
@@ -338,7 +374,7 @@ $stmt->close();
                         </div>
                         
                         <div class="order-user">
-                            <span><i class="bi bi-person"></i> <?= $o['student_account'] ?></span>
+                            <span><i class="bi bi-person"></i> <?= $o['student_account'] ?> (<?= htmlspecialchars($o['student_name']) ?>)</span>
                             <span style="color:#555; font-weight:normal; font-size:13px;">
                                 <i class="bi bi-telephone"></i> <?= htmlspecialchars($o['student_phone']) ?>
                             </span>
@@ -384,7 +420,7 @@ $stmt->close();
                         </div>
                         
                         <div class="order-user">
-                            <span><i class="bi bi-person"></i> <?= $o['student_account'] ?></span>
+                            <span><i class="bi bi-person"></i> <?= $o['student_account'] ?> (<?= htmlspecialchars($o['student_name']) ?>)</span>
                             <span style="color:#555; font-weight:normal; font-size:13px;">
                                 <i class="bi bi-telephone"></i> <?= htmlspecialchars($o['student_phone']) ?>
                             </span>
@@ -423,7 +459,7 @@ $stmt->close();
                         <div class="order-id">#<?= $o['order_id'] ?></div>
                         
                         <div class="order-user">
-                            <span><i class="bi bi-person"></i> <?= $o['student_account'] ?></span>
+                            <span><i class="bi bi-person"></i> <?= $o['student_account'] ?> (<?= htmlspecialchars($o['student_name']) ?>)</span>
                             <span style="color:#555; font-weight:normal; font-size:13px;">
                                 <i class="bi bi-telephone"></i> <?= htmlspecialchars($o['student_phone']) ?>
                             </span>
@@ -470,7 +506,7 @@ $stmt->close();
                         </div>
                         
                         <div class="order-user">
-                            <span><i class="bi bi-person"></i> <?= $o['student_account'] ?></span>
+                            <span><i class="bi bi-person"></i> <?= $o['student_account'] ?> (<?= htmlspecialchars($o['student_name']) ?>)</span>
                             <span style="color:#555; font-weight:normal; font-size:13px;">
                                 <i class="bi bi-telephone"></i> <?= htmlspecialchars($o['student_phone']) ?>
                             </span>
