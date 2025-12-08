@@ -750,9 +750,11 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
 
     <div id="store-list">
         <?php
-        $has_any_store_printed = false;
-        if ($store_result->num_rows > 0):
-            while ($store = $store_result->fetch_assoc()):
+        $has_any_store_printed = false; // 初始化旗標
+        
+        // 1. 先嘗試跑迴圈印出店家
+        if ($store_result->num_rows > 0) {
+            while ($store = $store_result->fetch_assoc()) {
                 $store_account = $store['account'];
                 $menu_sql = "SELECT * FROM menu WHERE account = ? ORDER BY type, price";
                 $menu_stmt = $link->prepare($menu_sql);
@@ -760,10 +762,13 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                 $menu_stmt->execute();
                 $menu_result = $menu_stmt->get_result();
 
+                // 如果店家沒有菜單，跳過不印
                 if ($menu_result->num_rows === 0) {
                     $menu_stmt->close();
                     continue;
                 }
+
+                // 只要有跑進這裡，代表有印出店家，將旗標設為 true
                 $has_any_store_printed = true;
 
                 $grouped_menu = [];
@@ -780,16 +785,11 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                 <div class="store-container">
                     <div class="store-title">
                         <span><i class="bi bi-shop"></i> <?= htmlspecialchars($store['name']) ?></span>
-
                         <small style="color:#888; font-size:14px; font-weight:normal;">
                             <i class="bi bi-telephone"></i> <?= htmlspecialchars($store['phone']) ?>
-
                             <span style="margin: 0 8px; color:#ccc;">|</span>
-
                             <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($store['address']) ?>
-
                             <span style="margin: 0 8px; color:#ccc;">|</span>
-
                             <i class="bi bi-envelope"></i> <?= htmlspecialchars($store['email']) ?>
                         </small>
                     </div>
@@ -808,11 +808,11 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                                 <?= htmlspecialchars($type) ?>
                             </div>
                             <div class="menu-grid-2">
-                                <?php foreach ($items as $menu):
-                                    $menu_id = $menu['menu_id'];
-                                    $max_stock = $menu['stock'];
-                                    $current_qty_in_cart = isset($cart_data[$menu_id]) ? $cart_data[$menu_id] : 0;
-                                    ?>
+                                <?php foreach ($items as $menu): // 這裡已修正變數名稱 $items as $menu
+                                                    $menu_id = $menu['menu_id'];
+                                                    $max_stock = $menu['stock'];
+                                                    $current_qty_in_cart = isset($cart_data[$menu_id]) ? $cart_data[$menu_id] : 0;
+                                                    ?>
                                     <div class="menu-card-item">
                                         <div class="menu-info-left">
                                             <div class="menu-name-text"><?= htmlspecialchars($menu['name']) ?></div>
@@ -825,31 +825,30 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                                             <div class="menu-badges">
                                                 <span class="view-mode badge-sale">
                                                     <i class="bi bi-fire"></i> 已售:
-                                                    <?= isset($item['sale_amount']) ? $item['sale_amount'] : 0 ?>
+                                                    <?= isset($menu['sale_amount']) ? $menu['sale_amount'] : 0 ?>
                                                 </span>
 
                                                 <span class="view-mode">
                                                     <?php
-                                                    $stock = isset($item['stock']) ? $item['stock'] : 0;
+                                                    // ★ 這裡包含之前修正的變數名稱 ($item -> $menu)
+                                                    $stock = isset($menu['stock']) ? $menu['stock'] : 0;
                                                     $stock_class = "badge-stock";
                                                     if ($stock < 5) {
-                                                        $stock_class .= " low"; // 低庫存變紅
+                                                        $stock_class .= " low";
                                                     }
                                                     ?>
                                                     <span class="<?= $stock_class ?>">
                                                         <i class="bi bi-box-seam"></i> 庫存: <?= $stock ?>
                                                     </span>
                                                 </span>
+
                                                 <label class="edit-mode" style="display:none; font-size:12px; color:#666;">庫存:</label>
-                                                <input type="number" class="edit-mode" name="menu[<?= $id ?>][stock]"
+                                                <input type="number" class="edit-mode" name="menu[<?= $menu_id ?>][stock]"
                                                     value="<?= $stock ?>"
                                                     style="display:none; width:60px; padding:2px; margin-right:5px;">
 
                                                 <span class="view-mode">
-                                                    <?php
-                                                    // Check if cook_time exists and is not the default zero time
-                                                    if (isset($menu['cook_time']) && $menu['cook_time'] !== '00:00:00' && !empty($menu['cook_time'])):
-                                                        ?>
+                                                    <?php if (isset($menu['cook_time']) && $menu['cook_time'] !== '00:00:00' && !empty($menu['cook_time'])): ?>
                                                         <span class="badge-time">
                                                             <i class="bi bi-clock"></i> <?= intval(substr($menu['cook_time'], 3, 2)) ?>分
                                                         </span>
@@ -857,8 +856,8 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                                                 </span>
                                                 <label class="edit-mode"
                                                     style="display:none; font-size:12px; color:#666;">時間(分):</label>
-                                                <input type="number" class="edit-mode" name="menu[<?= $id ?>][cook_time]"
-                                                    value="<?= isset($item['cook_time']) ? substr($item['cook_time'], 3, 2) : '' ?>"
+                                                <input type="number" class="edit-mode" name="menu[<?= $menu_id ?>][cook_time]"
+                                                    value="<?= isset($menu['cook_time']) ? substr($menu['cook_time'], 3, 2) : '' ?>"
                                                     style="display:none; width:50px; padding:2px;">
                                             </div>
                                             <?php if (!empty($menu['note'])): ?>
@@ -896,8 +895,15 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                         <?php endforeach; ?>
                     </div>
                 </div>
-            <?php endwhile; ?>
-        <?php else: ?>
+            <?php
+            } // end while
+        } // end if num_rows > 0
+        ?>
+
+        <?php
+        // ★ 重點修正：將「找不到店家」的判斷移出迴圈，檢查旗標是否為 false
+        if (!$has_any_store_printed):
+            ?>
             <div style="text-align:center; padding:50px; color:#666;">
                 <i class="bi bi-search" style="font-size:48px; display:block; margin-bottom:10px;"></i>
                 <p>找不到符合條件或目前營業中的店家</p>
