@@ -2,38 +2,31 @@
 session_start();
 include "../db.php";  // 引入資料庫連線
 
+// 1. 檢查是否有傳入 ID
 if (!isset($_GET['id'])) {
     echo "<script>alert('無公告 ID'); location.href='admin-announcement.php';</script>";
     exit;
 }
 
-// 日期篩選檢查
-$start_date = $_GET['start_date'] ?? '';
-$end_date = $_GET['end_date'] ?? '';
-
-if (!empty($start_date) && !empty($end_date)) {
-    if ($start_date > $end_date) {
-        echo "<script>alert('開始日期不能大於結束日期'); history.back();</script>";
-        exit();
-    }
-}
-
 $id = intval($_GET['id']);
 
-// 抓資料
-$stmt = $link->prepare("SELECT topic, description, start_time, end_time FROM announcement WHERE announcement_id=?");
+// 2. 抓取原本的資料
+$stmt = $link->prepare("SELECT * FROM announcement WHERE announcement_id=?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows == 0) {
-    echo "<script>alert('找不到公告'); location.href='admin-announcement.php';</script>";
-    exit;
-}
-
+// ★ 修正重點：直接抓取資料存入 $row
 $row = $result->fetch_assoc();
 
-// 若表單送出 → 更新資料
+// 如果 $row 是空的 (代表找不到該 ID 的資料)，直接擋下來
+if (!$row) {
+    echo "<script>alert('找不到該公告，可能已被刪除'); location.href='admin-announcement.php';</script>";
+    exit; // 務必停止執行
+}
+
+
+// 3. 處理表單送出 → 更新資料
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $topic = $_POST['topic'];
@@ -41,6 +34,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $start_time = $_POST['start_time'];
     $end_time = $_POST['end_time'];
 
+    // 時間邏輯檢查
     if ($start_time > $end_time) {
         echo "<script>alert('開始時間不能大於結束時間'); history.back();</script>";
         exit();
@@ -54,11 +48,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $update->bind_param("ssssi", $topic, $description, $start_time, $end_time, $id);
 
     if ($update->execute()) {
-        echo "<script>alert('修改成功'); location.href='store-announcement.php';</script>";
+        // 更新成功後跳轉回列表頁
+        echo "<script>alert('修改成功'); location.href='admin-announcement.php';</script>";
     } else {
-        echo "<script>alert('修改失敗');</script>";
+        echo "<script>alert('修改失敗：" . addslashes($link->error) . "');</script>";
     }
+    $update->close();
 }
+$stmt->close();
 ?>
 
 <!DOCTYPE html>
@@ -69,7 +66,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <title>店家公告修改</title>
 
     <style>
-       
         /* 主要區塊 */
         #container {
             background-color: white;
@@ -94,26 +90,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         .form-row label {
             width: 80px;
-            /* 控制標籤寬度，不會被撐開 */
             font-weight: bold;
             color: #5A3E2B;
         }
 
         .form-row input[type="text"] {
             width: 300px;
-            /* 改成比較舒服的寬度 */
             padding: 8px;
             border: 1px solid #C19A6B;
             border-radius: 6px;
         }
 
         textarea {
-            width: 600px;
-            /* 調整內容框不要太長 */
+            width: 500px; /* 稍微縮小一點避免破版 */
             height: 150px;
             padding: 10px;
             border: 1px solid #C19A6B;
             border-radius: 6px;
+            resize: vertical;
         }
 
         .time-row {
@@ -181,12 +175,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <form method="POST">
             <div class="form-row">
                 <label>主題：</label>
-                <input type="text" name="topic" value="<?php echo htmlspecialchars($row['topic']); ?>" required>
+                <input type="text" name="topic" value="<?php echo htmlspecialchars($row['topic'] ?? ''); ?>" required>
             </div>
 
             <div class="form-row">
                 <label>內容：</label>
-                <textarea name="description" required><?php echo htmlspecialchars($row['description']); ?></textarea>
+                <textarea name="description" required><?php echo htmlspecialchars($row['description'] ?? ''); ?></textarea>
             </div>
             <div class="time-row">
                 <label>開始時間：</label>
@@ -201,12 +195,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
             <div class="btn-area">
                 <button class="btn-save" type="submit">修改</button>
-                <button class="btn-cancel" type="button" onclick="location.href='store-announcement.php'">取消</button>
+                <button class="btn-cancel" type="button" onclick="location.href='admin-announcement.php'">取消</button>
             </div>
 
         </form>
     </div>
 
 </body>
-
 </html>

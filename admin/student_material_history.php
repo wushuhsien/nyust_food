@@ -316,7 +316,7 @@ $end_date = $_GET['end_date'] ?? '';
                     
                     /* ★ 關聯評論表 */
                     LEFT JOIN `mealreview` mr ON o.order_id = mr.order_id
-                    LEFT JOIN `mealreviewreply` mrr ON o.order_id = mrr.order_id
+                    LEFT JOIN `mealreviewreply` mrr ON mr.mealreview_id = mrr.mealreview_id
                     
                     WHERE o.account = ? 
                 ";

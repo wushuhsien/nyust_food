@@ -731,15 +731,21 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
         ?>
 
                 <div class="store-container">
-                    <div class="store-title">
-                        <span><i class="bi bi-shop"></i> <?= htmlspecialchars($store['name']) ?></span>
+                <div class="store-title">
+        <span><i class="bi bi-shop"></i> <?= htmlspecialchars($store['name']) ?></span>
 
-                        <small style="color:#888; font-size:14px; font-weight:normal;">
-                            <i class="bi bi-telephone"></i> <?= htmlspecialchars($store['phone']) ?>
-                            <span style="margin: 0 8px; color:#ccc;">|</span>
-                            <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($store['address']) ?>
-                        </small>
-                    </div>
+        <small style="color:#888; font-size:14px; font-weight:normal;">
+            <i class="bi bi-telephone"></i> <?= htmlspecialchars($store['phone']) ?>
+            
+            <span style="margin: 0 8px; color:#ccc;">|</span>
+            
+            <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($store['address']) ?>
+
+            <span style="margin: 0 8px; color:#ccc;">|</span>
+
+            <i class="bi bi-envelope"></i> <?= htmlspecialchars($store['email']) ?>
+        </small>
+    </div>
 
                     <div class="store-category-nav">
                         <?php foreach (array_keys($grouped_menu) as $type_name): ?>
