@@ -467,24 +467,55 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
             margin-bottom: 8px;
         }
 
-        /* 標籤 (庫存/時間) */
         .menu-badges {
-            font-size: 12px;
-            color: #666;
             display: flex;
-            gap: 8px;
+            gap: 5px;
             flex-wrap: wrap;
-            margin-bottom: 4px;
+            align-items: center;
+            margin-bottom: 8px;
+            /* 與價格隔開 */
         }
 
-        .badge-time {
-            color: #888;
+        /* 銷售量 */
+        .badge-sale {
+            font-size: 12px;
+            color: #d35400;
+            /* 深橘色字 */
+            background: #fdf2e9;
+            /* 淺橘色底 */
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #fae5d3;
         }
 
+        /* 庫存 */
         .badge-stock {
+            font-size: 12px;
             color: #27ae60;
+            /* 綠色字 */
             background: #eafaf1;
-            padding: 2px 6px;
+            /* 淺綠底 */
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #d4efdf;
+        }
+
+        /* 低庫存警示 */
+        .badge-stock.low {
+            color: #c0392b;
+            /* 紅色字 */
+            background: #fdedec;
+            /* 淺紅底 */
+            border: 1px solid #fadbd8;
+            font-weight: bold;
+        }
+
+        /* 烹飪時間 */
+        .badge-time {
+            font-size: 12px;
+            color: #888;
+            background: #eee;
+            padding: 2px 8px;
             border-radius: 4px;
         }
 
@@ -618,6 +649,20 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
             margin: 6px 0;
             line-height: 1.5;
         }
+
+        .badge-sale {
+            font-size: 0.8em;
+            color: #d35400;
+            /* 深橘色字 */
+            background: #fdf2e9;
+            /* 淺橘色底 */
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            border: 1px solid #fae5d3;
+            margin-right: 5px;
+            /* 與右邊的庫存標籤隔開 */
+        }
     </style>
 </head>
 
@@ -627,11 +672,12 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
     <?php
     $total_in_cart = 0;
     if (isset($_SESSION['cart'])) {
-        foreach ($_SESSION['cart'] as $q) $total_in_cart += $q;
+        foreach ($_SESSION['cart'] as $q)
+            $total_in_cart += $q;
     }
     ?>
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             var badge = document.getElementById('global-cart-count');
             if (badge) badge.innerText = "<?= $total_in_cart ?>";
         });
@@ -723,29 +769,30 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                 $grouped_menu = [];
                 while ($row = $menu_result->fetch_assoc()) {
                     $type = $row['type'];
-                    if (empty($type)) $type = "其他";
+                    if (empty($type))
+                        $type = "其他";
                     $grouped_menu[$type][] = $row;
                 }
                 $menu_stmt->close();
                 $store_uid = "store_" . $store['store_id'];
-        ?>
+                ?>
 
                 <div class="store-container">
-                <div class="store-title">
-        <span><i class="bi bi-shop"></i> <?= htmlspecialchars($store['name']) ?></span>
+                    <div class="store-title">
+                        <span><i class="bi bi-shop"></i> <?= htmlspecialchars($store['name']) ?></span>
 
-        <small style="color:#888; font-size:14px; font-weight:normal;">
-            <i class="bi bi-telephone"></i> <?= htmlspecialchars($store['phone']) ?>
-            
-            <span style="margin: 0 8px; color:#ccc;">|</span>
-            
-            <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($store['address']) ?>
+                        <small style="color:#888; font-size:14px; font-weight:normal;">
+                            <i class="bi bi-telephone"></i> <?= htmlspecialchars($store['phone']) ?>
 
-            <span style="margin: 0 8px; color:#ccc;">|</span>
+                            <span style="margin: 0 8px; color:#ccc;">|</span>
 
-            <i class="bi bi-envelope"></i> <?= htmlspecialchars($store['email']) ?>
-        </small>
-    </div>
+                            <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($store['address']) ?>
+
+                            <span style="margin: 0 8px; color:#ccc;">|</span>
+
+                            <i class="bi bi-envelope"></i> <?= htmlspecialchars($store['email']) ?>
+                        </small>
+                    </div>
 
                     <div class="store-category-nav">
                         <?php foreach (array_keys($grouped_menu) as $type_name): ?>
@@ -765,31 +812,70 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                                     $menu_id = $menu['menu_id'];
                                     $max_stock = $menu['stock'];
                                     $current_qty_in_cart = isset($cart_data[$menu_id]) ? $cart_data[$menu_id] : 0;
-                                ?>
+                                    ?>
                                     <div class="menu-card-item">
                                         <div class="menu-info-left">
                                             <div class="menu-name-text"><?= htmlspecialchars($menu['name']) ?></div>
                                             <?php if (!empty($menu['description'])): ?>
-                                                <div style="font-size:13px; color:#999; margin-top:5px;"><?= htmlspecialchars($menu['description']) ?></div>
+                                                <div style="font-size:13px; color:#999; margin-top:5px;">
+                                                    <?= htmlspecialchars($menu['description']) ?>
+                                                </div>
                                             <?php endif; ?>
                                             <div class="menu-price-text">$<?= number_format($menu['price']) ?></div>
                                             <div class="menu-badges">
-                                                <span class="badge-stock">庫存: <?= $max_stock ?></span>
-                                                <?php if (!empty($menu['cook_time']) && $menu['cook_time'] != '00:00:00'): ?>
-                                                    <span class="badge-time"><i class="bi bi-clock"></i> <?= substr($menu['cook_time'], 3, 2) ?>分</span>
-                                                <?php endif; ?>
+                                                <span class="view-mode badge-sale">
+                                                    <i class="bi bi-fire"></i> 已售:
+                                                    <?= isset($item['sale_amount']) ? $item['sale_amount'] : 0 ?>
+                                                </span>
+
+                                                <span class="view-mode">
+                                                    <?php
+                                                    $stock = isset($item['stock']) ? $item['stock'] : 0;
+                                                    $stock_class = "badge-stock";
+                                                    if ($stock < 5) {
+                                                        $stock_class .= " low"; // 低庫存變紅
+                                                    }
+                                                    ?>
+                                                    <span class="<?= $stock_class ?>">
+                                                        <i class="bi bi-box-seam"></i> 庫存: <?= $stock ?>
+                                                    </span>
+                                                </span>
+                                                <label class="edit-mode" style="display:none; font-size:12px; color:#666;">庫存:</label>
+                                                <input type="number" class="edit-mode" name="menu[<?= $id ?>][stock]"
+                                                    value="<?= $stock ?>"
+                                                    style="display:none; width:60px; padding:2px; margin-right:5px;">
+
+                                                <span class="view-mode">
+                                                    <?php
+                                                    // Check if cook_time exists and is not the default zero time
+                                                    if (isset($menu['cook_time']) && $menu['cook_time'] !== '00:00:00' && !empty($menu['cook_time'])):
+                                                        ?>
+                                                        <span class="badge-time">
+                                                            <i class="bi bi-clock"></i> <?= intval(substr($menu['cook_time'], 3, 2)) ?>分
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </span>
+                                                <label class="edit-mode"
+                                                    style="display:none; font-size:12px; color:#666;">時間(分):</label>
+                                                <input type="number" class="edit-mode" name="menu[<?= $id ?>][cook_time]"
+                                                    value="<?= isset($item['cook_time']) ? substr($item['cook_time'], 3, 2) : '' ?>"
+                                                    style="display:none; width:50px; padding:2px;">
                                             </div>
                                             <?php if (!empty($menu['note'])): ?>
-                                                <div class="menu-note"><i class="bi bi-info-circle-fill"></i> 備註：<?= htmlspecialchars($menu['note']) ?></div>
+                                                <div class="menu-note"><i class="bi bi-info-circle-fill"></i>
+                                                    備註：<?= htmlspecialchars($menu['note']) ?></div>
                                             <?php endif; ?>
                                         </div>
 
                                         <div class="menu-action-right">
                                             <?php if ($max_stock > 0): ?>
                                                 <div class="qty-control-pill">
-                                                    <button type="button" class="qty-btn" onclick="updateQty(<?= $menu_id ?>, -1, <?= $max_stock ?>)">−</button>
-                                                    <input type="text" id="qty-<?= $menu_id ?>" class="qty-display" value="<?= $current_qty_in_cart ?>" readonly>
-                                                    <button type="button" class="qty-btn" onclick="updateQty(<?= $menu_id ?>, 1, <?= $max_stock ?>)">+</button>
+                                                    <button type="button" class="qty-btn"
+                                                        onclick="updateQty(<?= $menu_id ?>, -1, <?= $max_stock ?>)">−</button>
+                                                    <input type="text" id="qty-<?= $menu_id ?>" class="qty-display"
+                                                        value="<?= $current_qty_in_cart ?>" readonly>
+                                                    <button type="button" class="qty-btn"
+                                                        onclick="updateQty(<?= $menu_id ?>, 1, <?= $max_stock ?>)">+</button>
                                                 </div>
                                             <?php else: ?>
                                                 <span class="sold-out-text">已售完</span>
@@ -833,7 +919,7 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
         dropdown.style.display = (dropdown.style.display === "block") ? "none" : "block";
     }
 
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (!event.target.closest('.dropdown')) {
             document.getElementById("myDropdown").style.display = "none";
         }
@@ -897,7 +983,7 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
             // 加一個簡單的縮放動畫，讓使用者注意到數字變了
             badge.style.transition = "transform 0.2s";
             badge.style.transform = "scale(1.5)";
-            setTimeout(function() {
+            setTimeout(function () {
                 badge.style.transform = "scale(1)";
             }, 200);
         }
@@ -928,9 +1014,9 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
 
         // 3. 發送到當前頁面 (student_menumanage.php)
         fetch('student_menumanage.php', {
-                method: 'POST',
-                body: formData
-            })
+            method: 'POST',
+            body: formData
+        })
             .then(response => response.text())
             .then(totalItems => {
                 // 4. 更新右上角購物車

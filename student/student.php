@@ -129,10 +129,20 @@ if (!$account) {
             border-bottom: none;
         }
 
+        /* 狀態標籤 */
         .status-badge {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 12px;
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+            white-space: nowrap;
+            margin-left: 8px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* 根據狀態不同顏色 (可選) */
+        .status-badge {
             background: #fff3cd;
             color: #856404;
             border: 1px solid #ffeeba;
@@ -207,9 +217,9 @@ if (!$account) {
             $result = $stmt->get_result();
 
             $active_orders = [];
-            
+
             // 用來快取店家營業時間，避免同一家店重複查詢資料庫多次
-            $store_hours_cache = []; 
+            $store_hours_cache = [];
             date_default_timezone_set("Asia/Taipei");
 
             while ($row = $result->fetch_assoc()) {
@@ -227,7 +237,7 @@ if (!$account) {
 
                 $hours = $store_hours_cache[$store_acc];
                 $show_order = true; // 預設顯示
-
+            
                 if ($hours) {
                     $open = $hours['open_time'];
                     $close = $hours['close_time'];
@@ -252,11 +262,12 @@ if (!$account) {
                         $show_order = false;
                     }
                 }
-                
-                // 如果判斷不需要顯示，就跳過這筆資料
-                if (!$show_order) continue; 
-                // --- 智慧過濾邏輯 END ---
 
+                // 如果判斷不需要顯示，就跳過這筆資料
+                if (!$show_order)
+                    continue;
+                // --- 智慧過濾邏輯 END ---
+            
                 // 組裝資料 (與原本邏輯相同)
                 $oid = $row['order_id'];
                 if (!isset($active_orders[$oid])) {
@@ -292,7 +303,7 @@ if (!$account) {
                                     </span>
                                     <span class="status-badge"><?= htmlspecialchars($order['status']) ?></span>
                                 </div>
-                                <div style="font-size:14px; color:#666;">
+                                <div style="font-size:14px; color:#666; white-space: nowrap;">
                                     <i class="bi bi-clock"></i> 預計 <?= $time_display ?>
                                 </div>
                             </summary>
@@ -304,7 +315,8 @@ if (!$account) {
                                             <?= htmlspecialchars($item['name']) ?>
                                             <span style="color:#888;">x<?= $item['qty'] ?></span>
                                             <?php if ($item['note']): ?>
-                                                <span style="font-size:12px; color:#e74c3c;">(<?= htmlspecialchars($item['note']) ?>)</span>
+                                                <span
+                                                    style="font-size:12px; color:#e74c3c;">(<?= htmlspecialchars($item['note']) ?>)</span>
                                             <?php endif; ?>
                                         </span>
                                     </div>

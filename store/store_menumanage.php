@@ -334,6 +334,58 @@ $stmt->close();
         .img-delete-btn:hover {
             background-color: #c0392b;
         }
+
+        .menu-badges {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 8px;
+            /* 與價格隔開 */
+        }
+
+        /* 銷售量 */
+        .badge-sale {
+            font-size: 12px;
+            color: #d35400;
+            /* 深橘色字 */
+            background: #fdf2e9;
+            /* 淺橘色底 */
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #fae5d3;
+        }
+
+        /* 庫存 */
+        .badge-stock {
+            font-size: 12px;
+            color: #27ae60;
+            /* 綠色字 */
+            background: #eafaf1;
+            /* 淺綠底 */
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #d4efdf;
+        }
+
+        /* 低庫存警示 */
+        .badge-stock.low {
+            color: #c0392b;
+            /* 紅色字 */
+            background: #fdedec;
+            /* 淺紅底 */
+            border: 1px solid #fadbd8;
+            font-weight: bold;
+        }
+
+        /* 烹飪時間 */
+        .badge-time {
+            font-size: 12px;
+            color: #888;
+            background: #eee;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
     </style>
 
 </head>
@@ -446,29 +498,41 @@ $stmt->close();
                                                 style="display:none; width:100%; margin-bottom:5px;">
                                         </div>
 
-                                        <div class="menu-tags">
-                                            <span class="view-mode">
-                                                <?php if (!empty($item['cook_time']) && $item['cook_time'] != '00:00:00'): ?>
-                                                    <span
-                                                        style="font-size:12px; color:#888; background:#eee; padding:2px 6px; border-radius:4px;"><i
-                                                            class="bi bi-clock"></i> <?= substr($item['cook_time'], 3, 2) ?>分</span>
-                                                <?php endif; ?>
+                                        <div class="menu-badges">
+                                            <span class="view-mode badge-sale">
+                                                <i class="bi bi-fire"></i> 已售:
+                                                <?= isset($item['sale_amount']) ? $item['sale_amount'] : 0 ?>
                                             </span>
-                                            <label class="edit-mode" style="display:none; font-size:12px;">時間(分):</label>
-                                            <input type="number" class="edit-mode" name="menu[<?= $id ?>][cook_time]"
-                                                value="<?= isset($item['cook_time']) ? substr($item['cook_time'], 3, 2) : '' ?>"
-                                                style="display:none; width:50px; padding:2px;">
 
                                             <span class="view-mode">
-                                                <?php if (isset($item['stock'])): ?>
-                                                    <span
-                                                        style="color:#27ae60; background:#eafaf1; font-size:12px; padding:2px 6px; border-radius:4px;">庫存:<?= $item['stock'] ?></span>
+                                                <?php
+                                                $stock = isset($item['stock']) ? $item['stock'] : 0;
+                                                $stock_class = "badge-stock";
+                                                if ($stock < 5) {
+                                                    $stock_class .= " low"; // 低庫存變紅
+                                                }
+                                                ?>
+                                                <span class="<?= $stock_class ?>">
+                                                    <i class="bi bi-box-seam"></i> 庫存: <?= $stock ?>
+                                                </span>
+                                            </span>
+                                            <label class="edit-mode" style="display:none; font-size:12px; color:#666;">庫存:</label>
+                                            <input type="number" class="edit-mode" name="menu[<?= $id ?>][stock]"
+                                                value="<?= $stock ?>"
+                                                style="display:none; width:60px; padding:2px; margin-right:5px;">
+
+                                            <span class="view-mode">
+                                                <?php if (!empty($item['cook_time']) && $item['cook_time'] != '00:00:00'): ?>
+                                                    <span class="badge-time">
+                                                        <i class="bi bi-clock"></i> <?= substr($item['cook_time'], 3, 2) ?>分
+                                                    </span>
                                                 <?php endif; ?>
                                             </span>
                                             <label class="edit-mode"
-                                                style="display:none; font-size:12px; margin-left:5px;">庫存:</label>
-                                            <input type="number" class="edit-mode" name="menu[<?= $id ?>][stock]"
-                                                value="<?= $item['stock'] ?>" style="display:none; width:50px; padding:2px;">
+                                                style="display:none; font-size:12px; color:#666;">時間(分):</label>
+                                            <input type="number" class="edit-mode" name="menu[<?= $id ?>][cook_time]"
+                                                value="<?= isset($item['cook_time']) ? substr($item['cook_time'], 3, 2) : '' ?>"
+                                                style="display:none; width:50px; padding:2px;">
                                         </div>
 
                                         <div class="menu-price">
