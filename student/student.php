@@ -132,13 +132,25 @@ if (!$account) {
         /* 狀態標籤 */
         .status-badge {
             font-size: 0.8rem;
-            padding: 4px 10px;
+            padding: 4px 0;
+            /* 修改：左右 padding 改為 0，改由 width 控制寬度 */
             border-radius: 20px;
             font-weight: 500;
             white-space: nowrap;
             margin-left: 8px;
             display: inline-block;
             vertical-align: middle;
+
+            /* ▼▼▼ 關鍵修改開始 ▼▼▼ */
+            width: 110px;
+            /* 設定固定寬度 (依據你最長的文字調整數值) */
+            text-align: center;
+            /* 讓文字在固定寬度內置中 */
+            /* ▲▲▲ 關鍵修改結束 ▲▲▲ */
+
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
         }
 
         /* 根據狀態不同顏色 (可選) */
