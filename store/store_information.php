@@ -11,7 +11,8 @@ if (!$account) {
 
 // 讀取店家資料
 $sql = "SELECT `store_id`, `name`, `description`, `address`, `phone`, `email`, `storetype_id` 
-        FROM `store` WHERE `account`=?";
+        FROM `store` 
+        WHERE `account`=?";
 $stmt = $link->prepare($sql);
 $stmt->bind_param("s", $account);
 $stmt->execute();
@@ -47,6 +48,7 @@ if (isset($_POST['update'])) {
     $description = $_POST['description'];
     $address = $_POST['address'];
     $phone = $_POST['phone'];
+    $password = trim($_POST['password']);
     if (!preg_match('/^(09\d{8}|0\d{1,3}-?\d{5,8})$/', $phone)) {
         echo "<script>alert('電話格式不正確，請輸入手機或市話'); history.back();</script>";
         exit;
@@ -83,6 +85,16 @@ if (isset($_POST['update'])) {
                 }
             }
         }
+    }
+
+    // 密碼有輸入才更新，並且加密存入 account
+    if (!empty($password)) {
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+        $sql2 = "UPDATE `account` SET `password`=? WHERE `account`=?";
+        $stmt2 = $link->prepare($sql2);
+        $stmt2->bind_param("ss", $hashed, $account);
+        $stmt2->execute();
     }
 
     echo "<script>alert('基本資料修改成功！'); window.location='store.php';</script>";
@@ -208,6 +220,11 @@ $days = ["1" => "星期一", "2" => "星期二", "3" => "星期三", "4" => "星
     <div class="container">
         <form method="POST">
             <input type="hidden" name="store_id" value="<?= $storeData['store_id'] ?>">
+
+            <div class="form-group">
+                <label>密碼</label>
+                <input type="text" name="password" placeholder="若需修改再輸入">
+            </div>
 
             <div class="form-group">
                 <label>店名</label>

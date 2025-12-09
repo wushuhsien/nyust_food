@@ -21,9 +21,9 @@ if (isset($_POST['update'])) {
         echo "<script>alert('密碼與確認密碼不一致！');</script>";
     } else {
         // 更新密碼
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $link->prepare("UPDATE account SET password = ? WHERE account = ?");
-        // $hashed_password = password_hash($password, PASSWORD_DEFAULT); // 建議使用 password_hash 亂碼
-        $stmt->bind_param("ss", $password, $account);
+        $stmt->bind_param("ss", $hashed_password, $account);
         if ($stmt->execute()) {
             echo "<script>alert('密碼更新成功！');window.location='admin.php';</script>";
         } else {
@@ -44,7 +44,7 @@ if (isset($_POST['update'])) {
             margin-bottom: 20px;
             font-size: 24px;
             font-weight: 600;
-            color:#2B2B2B;
+            color: #2B2B2B;
         }
 
         .container {
@@ -73,7 +73,7 @@ if (isset($_POST['update'])) {
             width: 100%;
             padding: 10px;
             border: 1px solid #C19A6B;
-            background:#FCF8F3;
+            background: #FCF8F3;
             border-radius: 6px;
             font-size: 14px;
             transition: 0.2s;
@@ -83,7 +83,7 @@ if (isset($_POST['update'])) {
         input[type="password"]:focus {
             border-color: #E6B566;
             outline: none;
-             box-shadow: 0 0 6px rgba(230,181,102,0.42);
+            box-shadow: 0 0 6px rgba(230, 181, 102, 0.42);
         }
 
         .btn-area {

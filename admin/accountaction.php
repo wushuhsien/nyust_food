@@ -3,6 +3,22 @@ session_start();
 include "../db.php";  // 引入資料庫連線
 $log_account = isset($_GET['account']) ? $_GET['account'] : '';
 $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設每頁顯示 10 筆
+
+// AJAX: 回傳完整資料給圖表
+if (isset($_GET['action']) && $_GET['action'] === 'get_all_logs' && !empty($log_account)) {
+    $stmt = $link->prepare("SELECT `time`, `action` FROM `accountaction` WHERE `account`=? ORDER BY `time` ASC");
+    $stmt->bind_param("s", $log_account);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $logs = [];
+    while ($row = $result->fetch_assoc()) {
+        $logs[] = $row;
+    }
+    $stmt->close();
+    header('Content-Type: application/json');
+    echo json_encode($logs);
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -103,7 +119,7 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
         <div class="action-bar">
             <div class="btn-group">
                 <button type="button" class="search-btn" onclick="history.back()">返回</button>
-                <button type="button" class="search-btn" style="margin-left:10px">圖表</button>
+                <button type="button" class="search-btn" style="margin-left:10px" id="showChartBtn">圖表</button>
             </div>
             <!-- 每頁筆數選單 -->
             <form method="get" style="margin:0">
@@ -187,63 +203,42 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
     </div>
 
     <script>
-        let modal = document.getElementById("chartModal");
-        let closeBtn = document.getElementById("closeChart");
-        let yearSelect = document.getElementById("yearSelect");
+         const modal = document.getElementById("chartModal");
+        const closeBtn = document.getElementById("closeChart");
+        const yearSelect = document.getElementById("yearSelect");
+        const showChartBtn = document.getElementById("showChartBtn");
+        let chartInstance = null;
 
-        // 點擊「圖表」按鈕
-        document.querySelector(".search-btn:nth-child(2)").addEventListener("click", () => {
+        showChartBtn.addEventListener("click", () => {
             modal.style.display = "flex";
             loadYearsAndBuildChart();
         });
 
-        // 關閉彈窗
         closeBtn.onclick = () => modal.style.display = "none";
 
-        // 從表格資料抓年月與登入/登出
-        function parseTableData() {
-            let logs = [];
-            document.querySelectorAll("tbody tr").forEach(tr => {
-                let tds = tr.querySelectorAll("td");
-                if (tds.length < 3) return;
-
-                let time = tds[1].textContent.trim();
-                let action = tds[2].textContent.trim();
-
-                if (time.includes("無操作紀錄") || time.includes("請選擇帳號")) return;
-
-                let year = time.substring(0, 4);
-                let month = parseInt(time.substring(5, 7)); // 01 → 1
-
-                logs.push({
-                    year,
-                    month,
-                    action
-                });
+        // 從後端抓取所有資料
+        async function fetchAllLogs() {
+            const response = await fetch(`?action=get_all_logs&account=<?= urlencode($log_account) ?>`);
+            const data = await response.json();
+            return data.map(item => {
+                let year = item.time.substring(0,4);
+                let month = parseInt(item.time.substring(5,7));
+                let action = item.action === 'IN' ? '登入' : (item.action === 'OUT' ? '登出' : item.action);
+                return { year, month, action };
             });
-            return logs;
         }
 
-        // 填入年份下拉 + 建立圖表
-        function loadYearsAndBuildChart() {
-            let logs = parseTableData();
-
-            let years = [...new Set(logs.map(x => x.year))]; // 去重
+        // 填入年份 + 建立圖表
+        async function loadYearsAndBuildChart() {
+            const logs = await fetchAllLogs();
+            let years = [...new Set(logs.map(x => x.year))];
             years.sort().reverse();
-
             yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
-
-            buildChart(yearSelect.value);
-
-            yearSelect.onchange = () => buildChart(yearSelect.value);
+            buildChart(yearSelect.value, logs);
+            yearSelect.onchange = () => buildChart(yearSelect.value, logs);
         }
 
-        let chartInstance = null;
-
-        // 生成圖表
-        function buildChart(selectedYear) {
-            let logs = parseTableData();
-
+        function buildChart(selectedYear, logs) {
             let loginCount = new Array(12).fill(0);
             let logoutCount = new Array(12).fill(0);
 
@@ -254,33 +249,19 @@ $perPage = isset($_GET['per_page']) ? intval($_GET['per_page']) : 10; // 預設�
                 }
             });
 
-            let ctx = document.getElementById("logChart").getContext("2d");
+            const ctx = document.getElementById("logChart").getContext("2d");
             if (chartInstance) chartInstance.destroy();
 
             chartInstance = new Chart(ctx, {
                 type: "bar",
                 data: {
-                    labels: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
-                    datasets: [{
-                            label: "登入次數",
-                            data: loginCount,
-                            backgroundColor: "#4caf50"
-                        },
-                        {
-                            label: "登出次數",
-                            data: logoutCount,
-                            backgroundColor: "#f44336"
-                        }
+                    labels: ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"],
+                    datasets: [
+                        { label: "登入次數", data: loginCount, backgroundColor: "#4caf50" },
+                        { label: "登出次數", data: logoutCount, backgroundColor: "#f44336" }
                     ]
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
+                options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
             });
         }
     </script>

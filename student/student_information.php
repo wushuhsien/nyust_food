@@ -15,6 +15,7 @@ if (isset($_POST['update'])) {
     $name = $_POST['name'];
     $nickname = $_POST['nickname'];
     $phone = $_POST['phone'];
+    $password = trim($_POST['password']);
     if (!preg_match('/^(09\d{8}|0\d{1,3}-?\d{5,8})$/', $phone)) {
         echo "<script>alert('電話格式不正確，請輸入手機或市話'); history.back();</script>";
         exit;
@@ -31,19 +32,31 @@ if (isset($_POST['update'])) {
     $stmt->bind_param("ssssi", $name, $nickname, $phone, $email, $student_id);
     $stmt->execute();
 
+    // 密碼有輸入才更新，並且加密存入 account
+    if (!empty($password)) {
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+        $sql2 = "UPDATE `account` SET `password`=? WHERE `account`=?";
+        $stmt2 = $link->prepare($sql2);
+        $stmt2->bind_param("ss", $hashed, $account);
+        $stmt2->execute();
+    }
+
     echo "<script>alert('基本資料修改成功！'); window.location='student.php';</script>";
     exit;
 }
 
 // 讀取資料
-$sql = "SELECT `student_id`, `name`, `nickname`, `phone`, `email`, `account` 
-        FROM `student` WHERE `account`=?";
+$sql = "SELECT a.`student_id`, a.`name`, a.`nickname`, a.`phone`, a.`email` , b.`password` 
+        FROM `student` a
+        INNER JOIN `account` b ON a.`account` = b.`account`
+        WHERE a.`account`=?";
 $stmt = $link->prepare($sql);
 $stmt->bind_param("s", $account);
 $stmt->execute();
 
 // 如果 get_result() 不可用，使用 bind_result
-$stmt->bind_result($student_id, $name, $nickname, $phone, $email, $account_db);
+$stmt->bind_result($student_id, $name, $nickname, $phone, $email, $password);
 $stmt->fetch();
 $stmt->close();
 ?>
@@ -140,6 +153,11 @@ $stmt->close();
 
         <form method="POST">
             <input type="hidden" name="student_id" value="<?= htmlspecialchars($student_id) ?>">
+
+            <div class="form-group">
+                <label>密碼</label>
+                <input type="text" name="password" placeholder="若需修改再輸入">
+            </div>
 
             <div class="form-group">
                 <label>姓名</label>

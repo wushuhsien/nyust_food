@@ -28,8 +28,10 @@ $result = $stmt->get_result();
 if ($result->num_rows === 1) {
     $row = $result->fetch_assoc();
 
-    // 直接比對明碼 (你可改成 password_hash)
-    if ($password === $row['password']) {
+    $dbHash = $row['password'];
+
+     // 使用 password_verify 比對加密密碼
+    if (password_verify($password, $dbHash)) {
 
         $_SESSION['user'] = $row['account']; // 記錄登入狀態
         $role = $row['role'];    // 取得權限欄位
@@ -42,7 +44,7 @@ if ($result->num_rows === 1) {
             addLoginAction($link, $username);
             echo "<script>alert('登入成功！'); window.location='store/store.php';</script>";
         } else if ($role == 2) {
-            addLoginAction($link, $username);
+            $_SESSION['pending_account'] = $row['account'];
             echo "<script>alert('登入成功！'); window.location='admin/admin.php';</script>";
         } else if ($role == 3) {
             echo "<script>alert('店家帳號還在審核中，請稍後再試'); history.back();</script>";
