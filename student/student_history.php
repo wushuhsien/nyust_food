@@ -24,13 +24,13 @@ if (isset($_POST['submit_review'])) {
     $check_stmt->bind_param("i", $review_oid);
     $check_stmt->execute();
     $check_stmt->store_result();
-    
+
     if ($check_stmt->num_rows > 0) {
         echo "<script>alert('此訂單已經評論過囉！'); history.back();</script>";
     } else {
         $ins_stmt = $link->prepare("INSERT INTO mealreview (description, time, rate, order_id) VALUES (?, ?, ?, ?)");
         $ins_stmt->bind_param("ssii", $review_desc, $review_time, $review_rate, $review_oid);
-        
+
         if ($ins_stmt->execute()) {
             echo "<script>alert('評論已送出！'); window.location.href='student_history.php';</script>";
         } else {
@@ -46,7 +46,7 @@ if (isset($_POST['submit_review'])) {
 $search_query = isset($_GET['q']) ? trim($_GET['q']) : '';
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : '';
-$rating_filter = isset($_GET['rating']) ? $_GET['rating'] : ''; 
+$rating_filter = isset($_GET['rating']) ? $_GET['rating'] : '';
 
 // 2. 準備 SQL 查詢
 
@@ -113,7 +113,7 @@ $history_orders = [];
 
 if (!empty($target_order_ids)) {
     $placeholders = implode(',', array_fill(0, count($target_order_ids), '?'));
-    
+
     // ★ 修改：LEFT JOIN mealreviewreply 使用 mealreview_id 關聯
     $sql = "
         SELECT 
@@ -153,32 +153,32 @@ if (!empty($target_order_ids)) {
 
     while ($row = $result->fetch_assoc()) {
         $oid = $row['order_id'];
-        
+
         if (!isset($history_orders[$oid])) {
             $display_time = !empty($row['pick_time']) ? $row['pick_time'] : $row['estimate_time'];
-            
+
             $history_orders[$oid] = [
                 'store_name' => $row['store_name'],
                 'status' => $row['status'],
-                'time' => $display_time, 
+                'time' => $display_time,
                 'order_note' => $row['order_note'],
                 'items' => [],
                 'total_price' => 0,
-                'review_rate' => $row['review_rate'], 
+                'review_rate' => $row['review_rate'],
                 'review_desc' => $row['review_desc'],
                 // ★ 儲存回覆資料
                 'reply_desc' => $row['reply_desc'],
                 'reply_time' => $row['reply_time']
             ];
         }
-        
+
         $history_orders[$oid]['items'][] = [
             'name' => $row['menu_name'],
             'qty' => $row['quantity'],
             'note' => $row['item_note'],
             'price' => $row['price']
         ];
-        
+
         $history_orders[$oid]['total_price'] += ($row['price'] * $row['quantity']);
     }
     $stmt->close();
@@ -197,76 +197,355 @@ foreach ($history_orders as $order) {
 
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
     <title>我的歷史訂單</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body { font-family: "Microsoft JhengHei", Arial, sans-serif; background: #f2f6fc; margin: 20px; }
-        .history-wrapper { max-width: 900px; margin: 0 auto; }
-        .history-header { background: #6c757d; color: white; padding: 20px; border-radius: 10px 10px 0 0; font-size: 24px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
-        
-        .search-section { background: white; padding: 15px; border-bottom: 1px solid #eee; }
-        .search-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .search-bar input, .search-bar select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
-        .search-btn { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-        .search-btn:hover { background: #5a6268; }
-        .reset-link { color: #dc3545; text-decoration: none; font-size: 14px; margin-left: 5px; }
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background: #f2f6fc;
+            margin: 20px;
+        }
 
-        .stats-container { display: flex; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; }
-        .stat-box { flex: 1; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px 15px; text-align: center; }
-        .stat-title { font-size: 13px; color: #666; margin-bottom: 5px; }
-        .stat-value { font-size: 20px; font-weight: bold; color: #333; }
-        .text-money { color: #d63384; }
+        .history-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+        }
 
-        .order-card { background: white; border-bottom: 1px solid #eee; margin-bottom: 0; }
-        .order-card:last-child { border-radius: 0 0 10px 10px; }
+        .history-header {
+            background: #6c757d;
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-        details { width: 100%; border-bottom: 1px solid #eee; }
-        summary { padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; background-color: #fff; transition: 0.2s; }
-        summary:hover { background-color: #f8f9fa; }
-        summary::-webkit-details-marker { display: none; }
-        summary::after { content: '\F282'; font-family: 'bootstrap-icons'; transition: 0.3s; color: #999; }
-        details[open] summary::after { transform: rotate(180deg); }
+        .search-section {
+            background: white;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
 
-        .order-info { display: flex; flex-direction: column; gap: 5px; }
-        .store-name { font-size: 18px; font-weight: bold; color: #333; }
-        .order-meta { font-size: 13px; color: #888; }
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
 
-        .status-badge { font-size: 13px; padding: 5px 10px; border-radius: 15px; font-weight: bold; }
-        .status-completed { background-color: #d1e7dd; color: #0f5132; }
-        .status-cancelled { background-color: #f8d7da; color: #842029; }
-        .status-rejected  { background-color: #e2e3e5; color: #41464b; }
+        .search-bar input,
+        .search-bar select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
 
-        .order-content { padding: 20px; background-color: #fafafa; border-top: 1px solid #eee; }
-        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ddd; font-size: 15px; color: #555; }
-        .item-row:last-child { border-bottom: none; }
-        .total-row { text-align: right; margin-top: 15px; font-weight: bold; font-size: 18px; color: #333; }
-        .empty-history { text-align: center; padding: 50px; color: #999; background: white; border-radius: 0 0 10px 10px; }
+        .search-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
 
-        .review-section { margin-top: 20px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; }
-        .review-title { font-weight: bold; margin-bottom: 10px; color: #495057; border-bottom: 2px solid #ffc107; display: inline-block; padding-bottom: 3px; }
-        
-        .star-rating { font-size: 24px; color: #ddd; cursor: pointer; display: inline-block; }
-        .star-rating .bi-star-fill { color: #ffc107; } 
-        .star-rating .bi-star { color: #ccc; }      
-        
-        .review-textarea { width: 100%; height: 60px; padding: 8px; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc; resize: none; font-family: inherit; }
-        .btn-submit-review { background: #28a745; color: white; border: none; padding: 8px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer; font-weight: bold; }
-        .btn-submit-review:hover { background: #218838; }
+        .search-btn:hover {
+            background: #5a6268;
+        }
 
-        .reviewed-box { background: #fff8e1; border: 1px solid #ffeeba; padding: 10px; border-radius: 8px; margin-top: 15px; }
-        .reviewed-stars { color: #ffc107; font-size: 18px; }
-        .reviewed-text { color: #555; margin-top: 5px; font-size: 14px; }
+        .reset-link {
+            color: #dc3545;
+            text-decoration: none;
+            font-size: 14px;
+            margin-left: 5px;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #eee;
+        }
+
+        .stat-box {
+            flex: 1;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px 15px;
+            text-align: center;
+        }
+
+        .stat-title {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .text-money {
+            color: #d63384;
+        }
+
+        .order-card {
+            background: white;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 0;
+        }
+
+        .order-card:last-child {
+            border-radius: 0 0 10px 10px;
+        }
+
+        details {
+            width: 100%;
+            border-bottom: 1px solid #eee;
+        }
+
+        summary {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            list-style: none;
+            background-color: #fff;
+            transition: 0.2s;
+        }
+
+        /* --- 請加入或修改這段 CSS --- */
+
+        /* 左側：自動填滿空間，太長顯示 ... */
+        .order-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            /* 佔據剩餘空間 */
+            min-width: 0;
+            /* 讓截斷效果生效 */
+        }
+
+        .store-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+            /* 不換行 */
+            overflow: hidden;
+            /* 超出隱藏 */
+            text-overflow: ellipsis;
+            /* 顯示 ... */
+        }
+
+        /* 右側：固定寬度 + 右邊距調整 */
+        .order-right {
+            width: 120px;
+            /* 設定固定寬度，確保上下單的文字都有對齊 */
+            text-align: right;
+            /* 內容文字靠右對齊 */
+            flex-shrink: 0;
+            /* 防止被壓縮 */
+
+            /* ▼▼▼ 關鍵在這裡 ▼▼▼ */
+            margin-right: 40px;
+            /* 想要更靠左，請把這個數字加大 (例如 60px) */
+        }
+
+        summary:hover {
+            background-color: #f8f9fa;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary::after {
+            content: '\F282';
+            font-family: 'bootstrap-icons';
+            transition: 0.3s;
+            color: #999;
+        }
+
+        details[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .order-meta {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .status-badge {
+            font-size: 13px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .status-completed {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .status-cancelled {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        .status-rejected {
+            background-color: #e2e3e5;
+            color: #41464b;
+        }
+
+        .order-content {
+            padding: 20px;
+            background-color: #fafafa;
+            border-top: 1px solid #eee;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #ddd;
+            font-size: 15px;
+            color: #555;
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .total-row {
+            text-align: right;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+            background: white;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .review-section {
+            margin-top: 20px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .review-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #495057;
+            border-bottom: 2px solid #ffc107;
+            display: inline-block;
+            padding-bottom: 3px;
+        }
+
+        .star-rating {
+            font-size: 24px;
+            color: #ddd;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .star-rating .bi-star-fill {
+            color: #ffc107;
+        }
+
+        .star-rating .bi-star {
+            color: #ccc;
+        }
+
+        .review-textarea {
+            width: 100%;
+            height: 60px;
+            padding: 8px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .btn-submit-review {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-submit-review:hover {
+            background: #218838;
+        }
+
+        .reviewed-box {
+            background: #fff8e1;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .reviewed-stars {
+            color: #ffc107;
+            font-size: 18px;
+        }
+
+        .reviewed-text {
+            color: #555;
+            margin-top: 5px;
+            font-size: 14px;
+        }
 
         /* ★ 新增：店家回覆樣式 */
         .reply-box {
-            margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e6dbb9;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #e6dbb9;
         }
-        .reply-title { font-size: 13px; color: #997404; font-weight: bold; margin-bottom: 3px; }
-        .reply-content { font-size: 14px; color: #666; background: rgba(255,255,255,0.6); padding: 5px; border-radius: 4px; }
+
+        .reply-title {
+            font-size: 13px;
+            color: #997404;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .reply-content {
+            font-size: 14px;
+            color: #666;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 5px;
+            border-radius: 4px;
+        }
     </style>
 </head>
+
 <body>
 
     <?php include "student_menu.php"; ?>
@@ -277,17 +556,19 @@ foreach ($history_orders as $order) {
             <i class="bi bi-clock-history"></i> 歷史訂單紀錄
         </div>
 
-        <div style="background: white; border-radius: 0 0 10px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
-            
+        <div
+            style="background: white; border-radius: 0 0 10px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+
             <div class="search-section">
                 <form method="GET" class="search-bar">
-                    <input type="text" name="q" placeholder="店家名稱 / 餐點名稱" value="<?= htmlspecialchars($search_query) ?>">
-                    
+                    <input type="text" name="q" placeholder="店家名稱 / 餐點名稱"
+                        value="<?= htmlspecialchars($search_query) ?>">
+
                     <span style="color:#666; font-size:14px;">日期：</span>
                     <input type="date" name="start_date" value="<?= $start_date ?>">
                     <span>~</span>
                     <input type="date" name="end_date" value="<?= $end_date ?>">
-                    
+
                     <select name="rating">
                         <option value="">所有評價</option>
                         <option value="unrated" <?= $rating_filter === 'unrated' ? 'selected' : '' ?>>尚未評價</option>
@@ -326,16 +607,18 @@ foreach ($history_orders as $order) {
                     <?php endif; ?>
                 </div>
             <?php else: ?>
-                <?php foreach ($history_orders as $order_id => $order): 
+                <?php foreach ($history_orders as $order_id => $order):
                     $badge_class = 'status-rejected';
-                    if ($order['status'] == '已取餐') $badge_class = 'status-completed';
-                    if ($order['status'] == '已取消') $badge_class = 'status-cancelled';
+                    if ($order['status'] == '已取餐')
+                        $badge_class = 'status-completed';
+                    if ($order['status'] == '已取消')
+                        $badge_class = 'status-cancelled';
                     $date_str = date('Y/m/d H:i', strtotime($order['time']));
-                ?>
+                    ?>
                     <details class="order-card">
                         <summary>
                             <div class="order-info">
-                                <div class="store-name">
+                                <div class="store-name" title="<?= htmlspecialchars($order['store_name']) ?>">
                                     <?= htmlspecialchars($order['store_name']) ?>
                                     <?php if (!empty($order['review_rate'])): ?>
                                         <span style="font-size:12px; color:#ffc107; margin-left:5px;">
@@ -348,7 +631,8 @@ foreach ($history_orders as $order) {
                                     <span style="margin-left: 10px;">#<?= $order_id ?></span>
                                 </div>
                             </div>
-                            <div style="text-align: right;">
+
+                            <div class="order-right">
                                 <span class="status-badge <?= $badge_class ?>">
                                     <?= htmlspecialchars($order['status']) ?>
                                 </span>
@@ -357,13 +641,13 @@ foreach ($history_orders as $order) {
                                 </div>
                             </div>
                         </summary>
-                        
+
                         <div class="order-content">
                             <?php foreach ($order['items'] as $item): ?>
                                 <div class="item-row">
                                     <div>
-                                        <?= htmlspecialchars($item['name']) ?> 
-                                        <?php if($item['note']): ?>
+                                        <?= htmlspecialchars($item['name']) ?>
+                                        <?php if ($item['note']): ?>
                                             <span style="font-size:12px; color:#e74c3c;">(<?= htmlspecialchars($item['note']) ?>)</span>
                                         <?php endif; ?>
                                     </div>
@@ -372,7 +656,8 @@ foreach ($history_orders as $order) {
                             <?php endforeach; ?>
 
                             <?php if ($order['order_note']): ?>
-                                <div style="margin-top: 10px; font-size: 13px; color: #856404; background: #fff3cd; padding: 8px; border-radius: 5px;">
+                                <div
+                                    style="margin-top: 10px; font-size: 13px; color: #856404; background: #fff3cd; padding: 8px; border-radius: 5px;">
                                     <i class="bi bi-pencil-fill"></i> 備註：<?= htmlspecialchars($order['order_note']) ?>
                                 </div>
                             <?php endif; ?>
@@ -380,14 +665,16 @@ foreach ($history_orders as $order) {
                             <div class="total-row">總計：$<?= $order['total_price'] ?></div>
 
                             <?php if ($order['status'] == '已取餐'): ?>
-                                
+
                                 <?php if (!empty($order['review_rate'])): ?>
                                     <div class="reviewed-box">
                                         <div class="reviewed-stars">
-                                            <?php 
-                                            for($i=1; $i<=5; $i++) {
-                                                if($i <= $order['review_rate']) echo '<i class="bi bi-star-fill"></i>';
-                                                else echo '<i class="bi bi-star" style="color:#ccc"></i>';
+                                            <?php
+                                            for ($i = 1; $i <= 5; $i++) {
+                                                if ($i <= $order['review_rate'])
+                                                    echo '<i class="bi bi-star-fill"></i>';
+                                                else
+                                                    echo '<i class="bi bi-star" style="color:#ccc"></i>';
                                             }
                                             ?>
                                             <span style="color:#888; font-size:14px; margin-left:5px;">(已評分)</span>
@@ -399,8 +686,9 @@ foreach ($history_orders as $order) {
                                         <?php if (!empty($order['reply_desc'])): ?>
                                             <div class="reply-box">
                                                 <div class="reply-title">
-                                                    <i class="bi bi-shop"></i> 店家回覆 
-                                                    <span style="font-weight:normal; color:#999; font-size:12px;">(<?= date('Y/m/d', strtotime($order['reply_time'])) ?>)</span>
+                                                    <i class="bi bi-shop"></i> 店家回覆
+                                                    <span
+                                                        style="font-weight:normal; color:#999; font-size:12px;">(<?= date('Y/m/d', strtotime($order['reply_time'])) ?>)</span>
                                                 </div>
                                                 <div class="reply-content">
                                                     <?= htmlspecialchars($order['reply_desc']) ?>
@@ -414,7 +702,7 @@ foreach ($history_orders as $order) {
                                         <div class="review-title">訂單評價</div>
                                         <form method="POST" onsubmit="return validateReview(this);">
                                             <input type="hidden" name="order_id" value="<?= $order_id ?>">
-                                            
+
                                             <div class="star-rating" id="star-container-<?= $order_id ?>">
                                                 <i class="bi bi-star star-icon" data-val="1" onclick="setRate(<?= $order_id ?>, 1)"></i>
                                                 <i class="bi bi-star star-icon" data-val="2" onclick="setRate(<?= $order_id ?>, 2)"></i>
@@ -423,8 +711,9 @@ foreach ($history_orders as $order) {
                                                 <i class="bi bi-star star-icon" data-val="5" onclick="setRate(<?= $order_id ?>, 5)"></i>
                                             </div>
                                             <input type="hidden" name="rate" id="rate-input-<?= $order_id ?>" value="0">
-                                            
-                                            <textarea name="description" class="review-textarea" placeholder="寫下您對這餐的評價..." required></textarea>
+
+                                            <textarea name="description" class="review-textarea" placeholder="寫下您對這餐的評價..."
+                                                required></textarea>
                                             <button type="submit" name="submit_review" class="btn-submit-review">送出評論</button>
                                         </form>
                                     </div>
@@ -444,7 +733,7 @@ foreach ($history_orders as $order) {
             document.getElementById('rate-input-' + orderId).value = val;
             const container = document.getElementById('star-container-' + orderId);
             const stars = container.getElementsByClassName('star-icon');
-            
+
             for (let i = 0; i < stars.length; i++) {
                 let starVal = parseInt(stars[i].getAttribute('data-val'));
                 if (starVal <= val) {
@@ -469,4 +758,5 @@ foreach ($history_orders as $order) {
         }
     </script>
 </body>
+
 </html>

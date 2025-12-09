@@ -637,8 +637,8 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
         }
 
         .announcement {
-            background: #e8f3ff;
-            border: 1px solid #4a90e2;
+            background: #fff3cd;
+            border: 1px solid #e6dbb9;
             border-radius: 8px;
             padding: 12px 15px;
             margin-bottom: 15px;
@@ -716,37 +716,6 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
         }
         ?>
     </div>
-    <div id="b" style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-        <div class="dashboard-card">
-            <h2 class="dashboard-title"><i class="bi bi-megaphone"></i> 店家公告</h2>
-            <div style="max-height: 150px; overflow-y: auto;">
-                <?php
-                $sql_store = "SELECT a.topic, a.description, a.start_time, a.end_time, s.name AS store_name
-                            FROM announcement a
-                            JOIN store s ON a.account = s.account
-                            WHERE a.type = '店休'
-                                AND a.start_time <= NOW()
-                                AND a.end_time >= NOW()
-                            ORDER BY a.start_time DESC";
-
-                $result_store = $link->query($sql_store);
-
-                if ($result_store->num_rows > 0) {
-                    while ($row = $result_store->fetch_assoc()) {
-                        echo '<div class="announcement">';
-                        echo '<p style="color:#d35400; font-weight:bold;">' . htmlspecialchars($row['store_name']) . '</p>';
-                        echo '<p><strong>主題：</strong>' . htmlspecialchars($row['topic']) . '</p>';
-                        echo '<p style="font-size:14px; color:#555;">' . nl2br(htmlspecialchars($row['description'])) . '</p>';
-                        echo '<p style="font-size:12px; color:#888; margin-top:5px;">' . htmlspecialchars($row['start_time']) . ' ~ ' . htmlspecialchars($row['end_time']) . '</p>';
-                        echo '</div>';
-                    }
-                } else {
-                    echo "<p style='text-align:center; color:#888;'>目前沒有店家店休公告。</p>";
-                }
-                ?>
-            </div>
-        </div>
-    </div>
 
     <div id="store-list">
         <?php
@@ -793,7 +762,57 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                             <i class="bi bi-envelope"></i> <?= htmlspecialchars($store['email']) ?>
                         </small>
                     </div>
+                    <?php
+                    // 1. 查詢該店家的公告
+                    $sql_ann = "SELECT topic, description, start_time, end_time 
+                            FROM announcement 
+                            WHERE account = ? 
+                              AND type = '店休' 
+                              AND start_time <= NOW() 
+                              AND end_time >= NOW()
+                            ORDER BY start_time DESC";
 
+                    $stmt_ann = $link->prepare($sql_ann);
+                    $stmt_ann->bind_param("s", $store_account);
+                    $stmt_ann->execute();
+                    $result_ann = $stmt_ann->get_result();
+
+                    // 2. 如果有公告，顯示黃色警示風格
+                    if ($result_ann->num_rows > 0) {
+                        ?>
+                        <div class="dashboard-card"
+                            style="background-color: #fff3cd !important; border: 1px solid #ffeeba; width: 100%; box-sizing: border-box; margin-bottom: 20px;">
+
+                            <h2 class="dashboard-title"
+                                style="border-bottom: 2px solid #ffeeba; padding-bottom: 10px; margin-bottom: 10px; color: #856404;">
+                                <i class="bi bi-megaphone-fill"></i> 店家公告
+                            </h2>
+
+                            <div style="max-height: 150px; overflow-y: auto; padding-right: 5px;">
+                                <?php while ($ann = $result_ann->fetch_assoc()): ?>
+                                    <div class="announcement"
+                                        style="margin-bottom: 15px; border-bottom: 1px dashed #e6dbb9; padding-bottom: 10px;">
+
+                                        <p style="color: #856404; font-weight:bold; font-size: 16px; margin: 0 0 5px 0;">
+                                            <?= htmlspecialchars($ann['topic']) ?>
+                                        </p>
+
+                                        <p style="color: #856404; font-size:14px; margin: 0 0 5px 0; line-height: 1.5;">
+                                            <?= nl2br(htmlspecialchars($ann['description'])) ?>
+                                        </p>
+
+                                        <p style="color: #856404; font-size:12px; opacity: 0.8; margin: 0;">
+                                            <i class="bi bi-clock"></i>
+                                            <?= htmlspecialchars($ann['start_time']) ?> ~ <?= htmlspecialchars($ann['end_time']) ?>
+                                        </p>
+                                    </div>
+                                <?php endwhile; ?>
+                            </div>
+                        </div>
+                        <?php
+                    } // end if
+                    $stmt_ann->close();
+                    ?>
                     <div class="store-category-nav">
                         <?php foreach (array_keys($grouped_menu) as $type_name): ?>
                             <a href="#cat-<?= $store_uid ?>-<?= htmlspecialchars($type_name) ?>">
@@ -895,7 +914,7 @@ $cart_data = isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
                         <?php endforeach; ?>
                     </div>
                 </div>
-            <?php
+                <?php
             } // end while
         } // end if num_rows > 0
         ?>
