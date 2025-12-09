@@ -129,36 +129,51 @@ if (!$account) {
             border-bottom: none;
         }
 
-        /* 狀態標籤 */
+        /* 狀態標籤基礎樣式 */
         .status-badge {
             font-size: 0.8rem;
             padding: 4px 0;
-            /* 修改：左右 padding 改為 0，改由 width 控制寬度 */
             border-radius: 20px;
-            font-weight: 500;
+            font-weight: bold;
             white-space: nowrap;
             margin-left: 8px;
             display: inline-block;
             vertical-align: middle;
-
-            /* ▼▼▼ 關鍵修改開始 ▼▼▼ */
             width: 110px;
-            /* 設定固定寬度 (依據你最長的文字調整數值) */
+            /* 固定寬度 */
             text-align: center;
-            /* 讓文字在固定寬度內置中 */
-            /* ▲▲▲ 關鍵修改結束 ▲▲▲ */
+            /* 文字置中 */
+        }
 
+        /* 狀態顏色設定 */
+        .status-waiting {
             background: #fff3cd;
             color: #856404;
             border: 1px solid #ffeeba;
         }
 
-        /* 根據狀態不同顏色 (可選) */
-        .status-badge {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
+        /* 等待店家接單 */
+        .status-cooking {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #b8daff;
         }
+
+        /* 製作中 */
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* 等待取餐 */
+        .status-default {
+            background: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d6d8db;
+        }
+
+        /* 其他 */
 
         .btn-order-more {
             display: block;
@@ -199,29 +214,30 @@ if (!$account) {
             <h2 class="dashboard-title"><i class="bi bi-receipt"></i> 進行中的訂單</h2>
 
             <?php
-            // 1. 先撈出該學生最近 48 小時內的所有未完成/進行中訂單
-            // (時間範圍放寬到 48 小時，以免漏掉跨日訂單，精確過濾由 PHP 處理)
+            // 1. 撈出訂單 (包含 SQL 排序邏輯)
             $sql_orders = "
-                SELECT 
-                    o.order_id, 
-                    o.status, 
-                    o.estimate_time, 
-                    o.note AS order_note, 
-                    s.name AS store_name, 
-                    s.account AS store_account, /* 多撈 store_account 用來查營業時間 */
-                    m.name AS menu_name, 
-                    m.price,
-                    oi.quantity, 
-                    oi.note AS item_note
-                FROM `order` o
-                JOIN `orderitem` oi ON o.order_id = oi.order_id
-                JOIN `menu` m ON oi.menu_id = m.menu_id
-                JOIN `store` s ON m.account = s.account
-                WHERE o.account = ? 
-                AND o.status NOT IN ('已完成', '已取消', '商家拒單', '已取餐')
-                AND o.estimate_time >= DATE_SUB(NOW(), INTERVAL 48 HOUR)
-                ORDER BY o.order_id DESC
-            ";
+            SELECT 
+                o.order_id, 
+                o.status, 
+                o.estimate_time, 
+                o.note AS order_note, 
+                s.name AS store_name, 
+                s.account AS store_account,
+                m.name AS menu_name, 
+                m.price,
+                oi.quantity, 
+                oi.note AS item_note
+            FROM `order` o
+            JOIN `orderitem` oi ON o.order_id = oi.order_id
+            JOIN `menu` m ON oi.menu_id = m.menu_id
+            JOIN `store` s ON m.account = s.account
+            WHERE o.account = ? 
+            AND o.status NOT IN ('已完成', '已取消', '商家拒單', '已取餐')
+            AND o.estimate_time >= DATE_SUB(NOW(), INTERVAL 48 HOUR)
+            ORDER BY 
+                FIELD(o.status, '等待店家接單', '餐點製作中', '店家已接單', '等待取餐') ASC, 
+                o.estimate_time ASC
+        ";
 
             $stmt = $link->prepare($sql_orders);
             $stmt->bind_param("s", $account);
@@ -229,8 +245,6 @@ if (!$account) {
             $result = $stmt->get_result();
 
             $active_orders = [];
-
-            // 用來快取店家營業時間，避免同一家店重複查詢資料庫多次
             $store_hours_cache = [];
             date_default_timezone_set("Asia/Taipei");
 
@@ -238,49 +252,42 @@ if (!$account) {
                 $store_acc = $row['store_account'];
                 $estimate_time = $row['estimate_time'];
 
-                // --- 智慧過濾邏輯 START ---
-                // 1. 如果快取沒資料，去撈該店家的營業時間
+                // --- 智慧過濾邏輯 (營業時間判斷) ---
                 if (!isset($store_hours_cache[$store_acc])) {
-                    $w = date('N'); // 今天星期幾
+                    $w = date('N');
                     $q_hours = "SELECT open_time, close_time FROM storehours WHERE account = '$store_acc' AND weekday = $w";
                     $res_h = $link->query($q_hours);
                     $store_hours_cache[$store_acc] = $res_h->fetch_assoc();
                 }
 
                 $hours = $store_hours_cache[$store_acc];
-                $show_order = true; // 預設顯示
-            
+                $show_order = true;
+
                 if ($hours) {
                     $open = $hours['open_time'];
                     $close = $hours['close_time'];
-                    $shift_start = '';
                     $current_time_str = date('H:i:s');
+                    $shift_start = '';
 
-                    // 計算該店當前營業班次的「起始時間」
-                    if ($close < $open) { // 跨日 (例如 18:00 - 02:00)
+                    if ($close < $open) { // 跨日
                         if ($current_time_str < $close) {
-                            // 現在是凌晨 (例如 01:00)，班次起始時間是昨天 18:00
                             $shift_start = date('Y-m-d H:i:s', strtotime("yesterday $open"));
                         } else {
-                            // 現在是晚上 (例如 23:00)，班次起始時間是今天 18:00
                             $shift_start = date('Y-m-d H:i:s', strtotime("today $open"));
                         }
-                    } else { // 一般 (例如 10:00 - 22:00)
+                    } else { // 一般
                         $shift_start = date('Y-m-d H:i:s', strtotime("today $open -1 hour"));
                     }
 
-                    // 比較：如果這筆訂單的預計時間，早於目前的班次起始時間，代表這是「上一班」的舊單，不顯示
                     if ($estimate_time < $shift_start) {
                         $show_order = false;
                     }
                 }
 
-                // 如果判斷不需要顯示，就跳過這筆資料
                 if (!$show_order)
                     continue;
                 // --- 智慧過濾邏輯 END ---
             
-                // 組裝資料 (與原本邏輯相同)
                 $oid = $row['order_id'];
                 if (!isset($active_orders[$oid])) {
                     $active_orders[$oid] = [
@@ -301,10 +308,22 @@ if (!$account) {
             }
             $stmt->close();
 
-            // --- 顯示 HTML (與原本邏輯相同) ---
+            // --- 顯示 HTML ---
             if (!empty($active_orders)) {
+                // 修正點：這裡只保留一個 foreach 迴圈
                 foreach ($active_orders as $order_id => $order) {
                     $time_display = date('Y/m/d H:i', strtotime($order['estimate_time']));
+
+                    // --- 狀態顏色判斷邏輯 ---
+                    $status_class = 'status-default';
+                    if ($order['status'] == '等待店家接單') {
+                        $status_class = 'status-waiting';
+                    } elseif ($order['status'] == '餐點製作中' || $order['status'] == '店家已接單') {
+                        $status_class = 'status-cooking';
+                    } elseif ($order['status'] == '等待取餐') {
+                        $status_class = 'status-ready';
+                    }
+                    // -----------------------
                     ?>
                     <div class="order-card">
                         <details>
@@ -313,7 +332,9 @@ if (!$account) {
                                     <span style="font-size:18px; color:#4a90e2; margin-right:5px;">
                                         <?= htmlspecialchars($order['store_name']) ?>
                                     </span>
-                                    <span class="status-badge"><?= htmlspecialchars($order['status']) ?></span>
+                                    <span class="status-badge <?= $status_class ?>">
+                                        <?= htmlspecialchars($order['status']) ?>
+                                    </span>
                                 </div>
                                 <div style="font-size:14px; color:#666; white-space: nowrap;">
                                     <i class="bi bi-clock"></i> 預計 <?= $time_display ?>
